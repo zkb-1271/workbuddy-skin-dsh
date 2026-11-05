@@ -14,6 +14,15 @@
 
 ---
 
+## 界面
+
+<p align="center">
+  <img src="docs/screenshots/01-overview.png" width="920" alt="完整界面：侧栏、会话区、输入框">
+</p>
+
+整窗一览：侧栏、会话区、输入框、底部工具条。白底、发丝线、近黑字，
+全屏只有一个主题蓝。
+
 ## 演示
 
 <p align="center">
@@ -21,11 +30,9 @@
 </p>
 
 点头像 → 自建设置页秒开 → 外观里关掉两个栏目，左侧导航立刻少两项 → 一键恢复。
-（演示中侧栏列表与右侧对话已打码。）
 
-<p align="center">
-  <img src="docs/screenshots/01-composer.png" width="720" alt="输入区">
-</p>
+## 设置页
+
 <p align="center">
   <img src="docs/screenshots/02-settings-appearance.png" width="420" alt="外观设置">
   <img src="docs/screenshots/03-settings-general.png" width="420" alt="通用设置">
