@@ -17,11 +17,16 @@
 ## 界面
 
 <p align="center">
-  <img src="docs/screenshots/01-overview.png" width="920" alt="完整界面：侧栏、会话区、输入框">
+  <img src="docs/screenshots/01-overview.png" width="920" alt="会话页：侧栏、会话区、输入框">
 </p>
+<p align="center"><sub>会话页 · 侧栏 / 会话区 / 输入框 / 底部工具条</sub></p>
 
-整窗一览：侧栏、会话区、输入框、底部工具条。白底、发丝线、近黑字，
-全屏只有一个主题蓝。
+<p align="center">
+  <img src="docs/screenshots/02-home.png" width="920" alt="首页：新任务入口">
+</p>
+<p align="center"><sub>首页 · 新任务入口，工作空间 / 权限 / 模型收在输入框上方一行</sub></p>
+
+白底、发丝线、近黑字，全屏只有一个主题蓝。
 
 ## 演示
 
@@ -34,8 +39,8 @@
 ## 设置页
 
 <p align="center">
-  <img src="docs/screenshots/02-settings-appearance.png" width="420" alt="外观设置">
-  <img src="docs/screenshots/03-settings-general.png" width="420" alt="通用设置">
+  <img src="docs/screenshots/03-settings-appearance.png" width="420" alt="外观设置">
+  <img src="docs/screenshots/04-settings-general.png" width="420" alt="通用设置">
 </p>
 
 ## 为什么做这个
