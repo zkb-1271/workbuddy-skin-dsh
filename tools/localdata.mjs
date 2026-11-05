@@ -171,6 +171,24 @@ function attach(t) {
   });
 }
 
+/* 沙箱规则：~/.workbuddy/settings.json 的 sandbox 段 */
+const collectSandbox = () => {
+  const cfg = readJson(path.join(WB, 'settings.json'), {}) || {};
+  const sb = cfg.sandbox || {};
+  const extra = Array.isArray(sb.extraAllowWrite) ? sb.extraAllowWrite.length : 0;
+  const ord = sb.orderedRules || {};
+  let rules = 0;
+  const groups = [];
+  for (const [kind, v] of Object.entries(ord)) {
+    const list = Array.isArray(v) ? v : v && Array.isArray(v.rules) ? v.rules : [];
+    if (list.length) {
+      rules += list.length;
+      groups.push({ kind, n: list.length, customized: !!(v && v.customized) });
+    }
+  }
+  return { rules, extra, groups };
+};
+
 async function main() {
   const ts = await listTargets();
   /* 设置窗口也是 app.asar/renderer 页面 —— 必须按 windowAppId 挑主窗口 */
@@ -207,6 +225,7 @@ async function main() {
     skills: collectSkills(),
     disk: await collectDisk(),
     prefs: collectPrefs(uid),
+    sandbox: collectSandbox(),
   };
 
   const obj = JSON.stringify(data);

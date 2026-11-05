@@ -321,6 +321,8 @@ window.__wbdsSettings2 = (() => {
           '对话内容宽度',
           `<span class="wbs2-dim wbs2-mono">${esc(width)}</span><button class="wbs2-btn" data-act="widthreset">重置</button>`
         )}
+        ${row('侧栏宽度', `<span class="wbs2-mono">${esc(read('agent-ui-sidebar-width') || '默认')}</span><span class="wbs2-dim"> px</span>`)}
+        ${row('详情面板宽度', `<span class="wbs2-mono">${esc(read('agent-ui-detail-panel-width') || '默认')}</span><span class="wbs2-dim"> px</span>`)}
       </div>
       <div class="wbs2-card">
         <div class="wbs2-row wbs2-row--title">
@@ -378,16 +380,31 @@ window.__wbdsSettings2 = (() => {
   };
 
   const panelShortcuts = () => {
-    const rows = [
-      ['打开设置', '⌘ ,'],
-      ['全局搜索', '⌘ K'],
-      ['关闭浮层', 'Esc'],
-    ]
-      .map(([l, k]) => `<div class="wbs2-row"><span class="wbs2-row-label">${l}</span><span class="wbs2-kbd">${esc(k)}</span></div>`)
+    const groups = [
+      ['全局', [
+        ['打开设置', '⌘ ,'],
+        ['全局搜索', '⌘ K'],
+        ['关闭当前浮层', 'Esc'],
+      ]],
+      ['输入框', [
+        ['发送', 'Enter'],
+        ['换行', '⇧ Enter'],
+        ['语音输入', '按住 ⌥ 说话'],
+      ]],
+      ['窗口', [
+        ['新建任务', '⌘ N'],
+        ['关闭窗口', '⌘ W'],
+      ]],
+    ];
+    const cards = groups
+      .map(([title, list]) => {
+        const rows = list
+          .map(([l, k]) => `<div class="wbs2-row"><span class="wbs2-row-label">${l}</span><span class="wbs2-kbd">${esc(k)}</span></div>`)
+          .join('');
+        return `<div class="wbs2-card"><div class="wbs2-row wbs2-row--title"><span class="wbs2-row-label">${title}</span></div>${rows}</div>`;
+      })
       .join('');
-    return `
-      <div class="wbs2-card">${rows}</div>
-      <p class="wbs2-note">语音输入等快捷键可在原生「快捷键」页自定义（由客户端保存）。</p>`;
+    return `${cards}<p class="wbs2-note">快捷键由客户端内置，目前不支持改键；这里只是速查。</p>`;
   };
 
   const panelMemory = () => {
@@ -462,12 +479,18 @@ window.__wbdsSettings2 = (() => {
       <p class="wbs2-note">手机等设备的配对需在客户端里扫码完成。</p>`;
   };
 
-  const panelConversation = () => `
+  const panelConversation = () => {
+    /* 改动详情开关是按账号存的：workbuddy.fileChanges.showDetails:<uid> */
+    const fileKey = 'workbuddy.fileChanges.showDetails:' + (uid() || '');
+    const hasKey = read(fileKey) !== '';
+    return `
     <div class="wbs2-card">
-      ${row('流式输出', '<span class="wbs2-dim">开启</span>')}
-      ${row('执行细节', '<span class="wbs2-dim">随消息展示</span>')}
+      ${switchRow('显示文件改动详情', fileKey, '执行时改了哪些文件、增删多少行')}
+      ${row('流式输出', '<span class="wbs2-dim">始终开启</span>')}
+      ${row('执行过程', '<span class="wbs2-dim">折叠在消息里，点开看步骤</span>')}
     </div>
-    <p class="wbs2-note">展示细节由当前模式（办公/开发/设计）决定。</p>`;
+    <p class="wbs2-note">${hasKey ? '改动详情开关存在本机，切换后对之后的消息生效。' : '还没记录过这个开关，切一下就会写入。'}</p>`;
+  };
 
   const panelImport = () => `
     <div class="wbs2-card">
@@ -501,24 +524,43 @@ window.__wbdsSettings2 = (() => {
   };
 
   const panelApps = () => {
-    const apps = readJson(K.appsCache, {});
-    const n = apps && typeof apps === 'object' ? Object.keys(apps).length : 0;
+    const d = localData();
+    const entrances = readJson(K.appsCache, {});
+    const entN = entrances && typeof entrances === 'object' ? Object.keys(entrances).length : 0;
+    const plugins = (d && d.plugins) || { total: 0, enabled: 0 };
+    const skills = (d && d.skills) || [];
+    const entranceRows = Object.entries(entrances || {})
+      .slice(0, 4)
+      .map(([k, v]) => row(`账号 ${k.slice(0, 8)}…`, `<span class="wbs2-dim">${v ? '已开启入口' : '已关闭'}</span>`))
+      .join('');
     return `
       <div class="wbs2-card">
-        ${row('已发布应用', `<span class="wbs2-mono">${n}</span>`)}
+        ${row('插件', `<span class="wbs2-mono">${plugins.total}</span><span class="wbs2-dim"> 启用 ${plugins.enabled}</span>`)}
+        ${row('本地技能', `<span class="wbs2-mono">${skills.length}</span>`)}
+        ${row('应用入口', `<span class="wbs2-mono">${entN}</span><span class="wbs2-dim"> 个账号</span>`)}
       </div>
-      <p class="wbs2-note">应用的权限与下线在客户端「应用管理」里完成。</p>`;
+      ${entranceRows ? `<div class="wbs2-card">${entranceRows}</div>` : ''}
+      <p class="wbs2-note">这里只是本机实况；应用的安装、权限与下线仍然在客户端里操作。</p>`;
   };
 
   const panelSecurity = () => {
     const a = readAccount() || {};
+    const d = localData();
+    const sbx = d && d.sandbox;
+    const perms = readJson('system-permissions-activated-ids', []);
+    const permText = Array.isArray(perms) && perms.length ? perms.join(' · ') : '未授权';
     return `
       <div class="wbs2-card">
+        ${switchRow('沙箱保护', 'CODEBUDDY_SANDBOX_SAFETY_ENABLED', '命令在受限环境里跑，越权写文件会被拦')}
+        ${row('强制模式', `<span class="wbs2-dim">${boolOf(read('CODEBUDDY_SANDBOX_SAFETY_FORCED')) ? '开启（不可关闭）' : '关闭'}</span>`)}
+        ${row('规则条数', sbx ? `<span class="wbs2-mono">${sbx.rules}</span><span class="wbs2-dim"> 条${sbx.extra ? ` · 额外可写 ${sbx.extra} 个目录` : ''}</span>` : '<span class="wbs2-dim">读取中…</span>')}
+        ${row('系统授权', `<span class="wbs2-dim">${esc(permText)}</span>`)}
+      </div>
+      <div class="wbs2-card">
         ${row('登录账号', `<span class="wbs2-mono">${esc(a.nickname || '—')}</span>`)}
-        ${row('登录方式', '<span class="wbs2-dim">微信 / WorkBuddy 账号</span>')}
         ${row('本地标识', `<span class="wbs2-mono">${esc((a.uid || '—').slice(0, 18))}…</span>`)}
       </div>
-      <p class="wbs2-note">退出登录、密钥管理与安全审计在客户端里操作。</p>`;
+      <p class="wbs2-note">规则明细在 ~/.workbuddy/settings.json 的 sandbox 段，改完重启生效。</p>`;
   };
 
   const panelPersonalization = () => {
