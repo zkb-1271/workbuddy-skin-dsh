@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 先读 README（风险 / 安装 / 常见问题）
+    url: https://github.com/zkb-1271/workbuddy-skin-dsh#readme
+    about: 皮肤没出现、端口没开、卸载还原等高频问题都在这里
+  - name: WorkBuddy 更新后样式乱了怎么办
+    url: https://github.com/zkb-1271/workbuddy-skin-dsh#常见问题
+    about: 这类问题通常是版本结构变化，先看这里再开 issue

@@ -1,0 +1,105 @@
+name: 报告问题
+description: 样式没出现、某块失灵、注入报错等
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        多数「样式失效」是 WorkBuddy 更新导致 DOM 结构变了，定位它需要版本信息。
+        请把下面几项填完整，能省掉好几轮往返。
+
+        > 提交前请先跑一次 `bash tools/diagnose.sh`，它的输出通常就能说明问题。
+
+  - type: input
+    id: wb-version
+    attributes:
+      label: WorkBuddy 版本
+      description: 设置 → 关于 里能看到，形如 5.9.3
+      placeholder: 5.9.3
+    validations:
+      required: true
+
+  - type: input
+    id: macos
+    attributes:
+      label: 系统与芯片
+      description: 苹果菜单 → 关于本机
+      placeholder: macOS 14.5 / Apple Silicon（M2）
+    validations:
+      required: true
+
+  - type: input
+    id: node
+    attributes:
+      label: Node 版本
+      description: 终端执行 `node -v`
+      placeholder: v20.11.0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: 哪一部分出问题
+      description: 选最接近的一项
+      options:
+        - 整套皮肤都没出现（界面还是原样）
+        - 主界面样式不对（颜色/字体/间距）
+        - 侧栏左下角头像或积分条没有
+        - 点头像打不开自建设置页
+        - 自建设置页某一页空白或报错
+        - 语音录音时的配色不对
+        - 「任务」分组的折叠数量不对
+        - 安装 / 卸载过程报错
+        - 其他（在下面说明）
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: 现象
+      description: 你期望看到什么、实际看到什么。能复现的步骤写一下。
+      placeholder: |
+        1. 重启 WorkBuddy
+        2. 侧栏没有出现头像
+        3. 期望：左下角出现圆形头像和积分
+    validations:
+      required: true
+
+  - type: textarea
+    id: diagnostic
+    attributes:
+      label: diagnose.sh 输出
+      description: 终端执行 `cd <仓库目录> && bash tools/diagnose.sh`，把结果整段粘过来
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: 守护进程日志（最后 20 行）
+      description: 终端执行 `tail -20 ~/.dsh-skin/logs/daemon.log`
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: 截图
+      description: 直接把图片拖进来即可（样式类问题有图最好定位）
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: 确认
+      options:
+        - label: 我已经读过 README 的「风险」一节，并知道需要开启调试端口
+          required: true
+        - label: 我搜过已有 issue，没有重复
+          required: true

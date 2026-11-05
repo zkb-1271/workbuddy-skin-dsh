@@ -1,0 +1,49 @@
+name: lint
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  shellcheck:
+    name: shell 脚本
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安装 shellcheck
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq shellcheck
+          shellcheck --version
+
+      - name: 检查安装/卸载与工具脚本
+        run: shellcheck -x -S warning install.sh uninstall.sh tools/*.sh
+
+  node-check:
+    name: JS 语法
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: node --check（skin 注入脚本 + tools 采集脚本）
+        run: |
+          fail=0
+          for f in skin/*.js tools/*.mjs; do
+            node --check "$f" || { echo "✘ $f"; fail=1; }
+          done
+          exit $fail
+
+  shell-syntax:
+    name: bash -n
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: bash -n
+        run: bash -n install.sh uninstall.sh tools/*.sh

@@ -3,6 +3,8 @@
 给 **WorkBuddy** 换一套「白底 · 发丝线 · 近黑字」的极简皮肤（dsh 风格）。
 运行时注入，随时一键还原，不改动任何官方文件。
 
+![lint](https://github.com/zkb-1271/workbuddy-skin-dsh/actions/workflows/lint.yml/badge.svg)
+
 > **非官方项目**，与腾讯 / WorkBuddy 团队无关。使用前请读下面的「风险」一节。
 
 ---
@@ -17,6 +19,15 @@
 3. **随版本失效**：样式依赖 WorkBuddy 的 DOM 结构与类名，客户端更新后可能
    局部失灵。当前验证版本：**WorkBuddy 5.9.3 (macOS)**。
 4. **不含任何破解**：积分只做只读展示，不碰充值、订阅、额度接口。
+
+## 演示
+
+<p align="center">
+  <img src="docs/screenshots/demo.gif" width="880" alt="点头像打开设置页、自定义左侧栏目">
+</p>
+
+点头像 → 自建设置页秒开 → 外观里关掉两个栏目，左侧导航立刻少两项 → 一键恢复。
+（演示中侧栏列表与右侧对话已打码。）
 
 ## 截图
 
@@ -138,7 +149,7 @@ tail -20 ~/.dsh-skin/logs/daemon.log
 ```
 skin/     注入的样式与页面脚本（约 176 KB）
 tools/    CDP 客户端、注入器、守护进程、积分/本地数据采集
-docs/     截图
+docs/     截图与演示 GIF
 install.sh / uninstall.sh
 ```
 

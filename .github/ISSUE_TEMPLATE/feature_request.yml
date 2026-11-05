@@ -1,0 +1,52 @@
+name: 功能建议
+description: 想改某处样式、加一个设置项、支持别的版本
+title: "[Feature] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        欢迎提想法。有两类建议希望你先看一下：
+
+        - **「让皮肤支持 Windows / Linux」** —— 目前只做了 macOS（LaunchAgent、`lsappinfo`、App 路径都绑定 macOS），
+          跨平台是重写一套，不是改几行的事。
+        - **「关掉调试端口也能用」** —— 做不到，注入本身依赖 CDP，见 README「常见问题」。
+
+  - type: dropdown
+    id: kind
+    attributes:
+      label: 建议类型
+      options:
+        - 调整现有样式（颜色 / 字体 / 间距 / 圆角）
+        - 自建设置页新增可调项
+        - 新增一个界面模块（比如某个区域也纳入皮肤）
+        - 安装 / 卸载体验改进
+        - 兼容新版本 WorkBuddy
+        - 文档 / 截图
+        - 其他
+    validations:
+      required: true
+
+  - type: textarea
+    id: idea
+    attributes:
+      label: 你想要什么
+      description: 现在的样子 + 你希望变成的样子。有参考图更好（可以直接贴原客户端的截图）。
+    validations:
+      required: true
+
+  - type: textarea
+    id: why
+    attributes:
+      label: 为什么
+      description: 现在这样哪里别扭、影响你什么使用场景
+    validations:
+      required: false
+
+  - type: input
+    id: wb-version
+    attributes:
+      label: 你的 WorkBuddy 版本
+      placeholder: 5.9.3
+    validations:
+      required: false
