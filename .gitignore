@@ -1,0 +1,7 @@
+.DS_Store
+*.log
+state/
+# 运行时数据不会进仓库，这里只是兜底
+logs/
+skin/avatar.local.js
+skin/assets/avatar.local.png
