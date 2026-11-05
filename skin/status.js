@@ -3,8 +3,8 @@
    · 去掉运行中的绿色旋转齿轮（原生 trailingStatus）
    · 改成右侧一个小圆点：
        green  = 已完成且没点开过（原生 unread）
-       yellow = 在等确认 / 等权限
-       red    = 失败
+      red    = 失败
+   等确认 / 等权限**不出点**（用户要求：那个橙色小点看着像告警，去掉）
      运行中不显示点（用户要求只保留这三种）
    ------------------------------------------------------------
    状态来源是组件 props，不是猜类名：
@@ -61,9 +61,9 @@ window.__wbdsStatus = (() => {
     const cls = String(p.statusClassName || '');
     const text = String(p.statusText || '');
     if (/status-error/.test(cls)) return 'red';
-    if (/status-warning/.test(cls)) return 'yellow';
+    if (/status-warning/.test(cls)) return null;   /* 待确认/等权限：不出点 */
     if (/失败|错误|出错|异常|终止|中断|中止/.test(text)) return 'red';
-    if (/等待|待确认|待授权|确认|权限|审核|阻塞|排队/.test(text)) return 'yellow';
+    if (/等待|待确认|待授权|确认|权限|审核|阻塞|排队/.test(text)) return null;
     /* 未读：props 是主信号，DOM 里那个原生未读点作为兜底
        （props 字段名换了的时候还能靠它） */
     if (p.showUnreadDot) return 'green';
@@ -74,7 +74,7 @@ window.__wbdsStatus = (() => {
       const h = hueOf(getComputedStyle(svg).color);
       if (h !== null) {
         if (h >= 330 || h <= 20) return 'red';
-        if (h > 20 && h < 65) return 'yellow';
+        if (h > 20 && h < 65) return null;   /* 黄系状态图标也不再补点 */
       }
     }
     return null;

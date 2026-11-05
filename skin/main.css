@@ -1344,7 +1344,31 @@ body.wbds-resizing {
     #4e75df 50%,
     rgba(78, 117, 223, 0) 100%
   );
+  --cb-sash-hover-gradient-vertical: /* 覆盖上面同名的 :root 版本（body 层更近） */
+    linear-gradient(180deg, rgba(78, 117, 223, 0) 0%, #4e75df 50%, rgba(78, 117, 223, 0) 100%);
+  --cb-sash-hover-gradient-horizontal:
+    linear-gradient(90deg, rgba(78, 117, 223, 0) 0%, #4e75df 50%, rgba(78, 117, 223, 0) 100%);
+  /* 关键：主题同时定义了 wb- 前缀的一套同名变量，拖拽时用的是这一套 */
+  --wb-sash-hover-gradient-vertical:
+    linear-gradient(180deg, rgba(78, 117, 223, 0) 0%, #4e75df 50%, rgba(78, 117, 223, 0) 100%);
+  --wb-sash-hover-gradient-horizontal:
+    linear-gradient(90deg, rgba(78, 117, 223, 0) 0%, #4e75df 50%, rgba(78, 117, 223, 0) 100%);
+  --wb-border-drag-indicator: #4e75df;
+  --wb-palette-brand-7: #7d9be8;
+  --wb-palette-brand-8: #4e75df;
+  --wb-brand-primary-subtle: rgba(78, 117, 223, 0.12);
+  --wb-message-loading-color-icon: #4e75df;
+  --wb-voice-input-confirm: #4e75df;
+  --cb-voice-confirm-color: #4e75df;
+  --cb-cat-system-prompt: #4e75df;
+  --cb-colleagues-mode-switch-active-bg: #4e75df;
   --cb-border-drag-indicator: #4e75df;
+
+  /* 成功语义**显式还原为绿**：主题里 --cb-success-color 是从品牌色
+     （--wb-palette-brand-8）派生的，改品牌色会把它一起带成蓝色。
+     成功/通过必须还是绿色，否则「✅」变成蓝勾反而看不懂。 */
+  --cb-success-color: #00c29a;
+  --wb-color-text-success: #00c29a;
   --cb-focus-outline-color: #4e75df;
   --wb-accent-unread: #4e75df;
   --wb-color-primary: #4e75df;
