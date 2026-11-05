@@ -1312,3 +1312,43 @@ body.wbds-resizing {
   opacity: 0.45;
   cursor: default;
 }
+
+/* ---------- 19. 品牌绿全面收口：拖拽分隔线 / 焦点环 / 未读点等改主题蓝 ----------
+   原生大量位置用 `var(--cb-xxx, #00c29a)` 这种「变量没定义、只有绿色 fallback」
+   的写法（和语音那几个 token 同一套路）。所以在 :root 上定义同名变量即可整体接管，
+   不需要 !important。
+
+   注意区分语义：
+     · 品牌色（拖拽指示、焦点环、未读点、主链接）→ 主题蓝
+     · 成功/通过类（--cb-success-color、--wb-color-text-success、--cr-status-success）
+       **保持绿色**，那是状态语义，改成蓝反而看不懂
+   对应原生选择器（供以后排查）：
+     ._sash_._vertical_:hover/_dragging::before  →  --cb-sash-hover-gradient-vertical
+     ._sash_._horizontal_:hover/_dragging::before →  --cb-sash-hover-gradient-horizontal
+     ✳:focus-visible 的 outline                →  --cb-focus-outline-color
+
+   注意：这些变量是**在 <body> 上**被主题重新定义的（body.light.cb-light...），
+   只定义在 :root 会被压掉，所以必须同时写 `:root[data-wbskin] body`。
+*/
+:root[data-wbskin="dsh"],
+:root[data-wbskin="dsh"] body {
+  --cb-sash-hover-gradient-vertical: linear-gradient(
+    180deg,
+    rgba(78, 117, 223, 0) 0%,
+    #4e75df 50%,
+    rgba(78, 117, 223, 0) 100%
+  );
+  --cb-sash-hover-gradient-horizontal: linear-gradient(
+    90deg,
+    rgba(78, 117, 223, 0) 0%,
+    #4e75df 50%,
+    rgba(78, 117, 223, 0) 100%
+  );
+  --cb-border-drag-indicator: #4e75df;
+  --cb-focus-outline-color: #4e75df;
+  --wb-accent-unread: #4e75df;
+  --wb-color-primary: #4e75df;
+  --wb-color-text-brand-default: #4e75df;
+  --cr-brand-primary: #4e75df;
+  --cr-brand-secondary: #7d9be8;
+}
