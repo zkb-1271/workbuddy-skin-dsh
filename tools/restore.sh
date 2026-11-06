@@ -25,6 +25,7 @@ CLEAN="(() => {
   window.__wbdsArchive?.destroy?.();
   window.__wbdsStatus?.destroy?.();
   window.__wbdsCredits?.destroy?.();
+  window.__wbdsModeSync?.destroy?.();
   window.__wbdsTasks?.destroy?.();
   window.__wbdsSettings2?.destroy?.();
   window.__wbdsCreditsData = undefined;

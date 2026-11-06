@@ -36,6 +36,7 @@ CDP_APP=main node cdp.mjs css "$SKIN/main.css" || exit 1
 if [ -n "$MODE" ]; then
   CDP_APP=main node cdp.mjs eval "(() => { localStorage.setItem('wbds.skin.mode', '$MODE'); return 1 })()" >/dev/null 2>&1
 fi
+CDP_APP=main node cdp.mjs run "$SKIN/mode-sync.js" >/dev/null 2>&1
 CDP_APP=main node cdp.mjs run "$SKIN/launch.js" >/dev/null 2>&1
 CDP_APP=main node cdp.mjs run "$SKIN/hide.js" >/dev/null 2>&1
 CDP_APP=main node cdp.mjs run "$SKIN/resize.js" >/dev/null 2>&1

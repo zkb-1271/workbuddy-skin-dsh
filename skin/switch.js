@@ -1,118 +1,110 @@
 /**
- * WorkBuddy · dsh 皮肤 —— 设置页「界面风格」开关
+ * WorkBuddy · dsh 皮肤 —— 原生设置「外观」页里的主题卡
  *
- * 设计要点：
- * 1. 皮肤样式（settings.css）全部挂在 :root[data-wbskin="dsh"] 下，
- *    所以「切回原生」= 摘掉这个属性，不需要卸载 style 标签。
- * 2. 开关自身的样式**不带** data-wbskin 前缀，否则切到原生后开关自己也变样、
- *    会出现「切过去切不回来」。样式由本文件自带，自包含。
- * 3. 状态写 localStorage，不碰 WorkBuddy 官方配置结构。
+ * 以前是在页面顶部塞一行按钮，现在改成和「浅色 / 深色 / 有风…」并列的一张主题卡：
+ *   · 点我们的卡 → 切到 dsh 风格
+ *   · 点任何一个原生主题卡 → 切回原生（皮肤摘掉）
+ *
+ * 跨窗口：设置窗口和主窗口同源（同一个 index.html），localStorage 共享，
+ * 所以直接写 localStorage + 广播一个 ping 键，主窗口的 mode-sync.js 收到就切。
+ *
+ * 坑：卡片是 React 渲染的，切页会重建 DOM —— 必须幂等补挂，
+ *     且补挂时不能无脑重建（会触发 MutationObserver 死循环）。
  */
 
-window.__wbdsSwitch = (() => {
-  const LS_KEY = 'wbds.skin.mode';
-  const MODE_DSH = 'dsh';
-  const MODE_NATIVE = 'native';
-  const ROW_ID = 'wbds-style-row';
-  const STYLE_ID = 'wbds-control-style';
+window.__wbdsSwitch?.destroy?.();
 
-  /* ---------- 开关控件样式（无命名空间前缀） ---------- */
+window.__wbdsSwitch = (() => {
+  const LS_MODE = 'wbds.skin.mode';
+  const PING = 'wbds.mode.ping';
+  const CELL_ID = 'wbds-theme-cell';
+  const STYLE_ID = 'wbds-theme-style';
+  const GRID_SEL = '.appearance-card-grid';
+
+  /* 缩略图：白底 + 淡灰结构 + 一点主题蓝，和皮肤气质一致 */
+  const COVER_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="320" height="200" viewBox="0 0 320 200">
+<rect width="320" height="200" fill="#ffffff"/>
+<rect x="0" y="0" width="86" height="200" fill="#f6f7f8"/>
+<rect x="12" y="18" width="52" height="7" rx="3.5" fill="#dfe2e6"/>
+<rect x="12" y="34" width="62" height="7" rx="3.5" fill="#e6e8ec"/>
+<rect x="12" y="50" width="46" height="7" rx="3.5" fill="#e6e8ec"/>
+<rect x="12" y="74" width="58" height="7" rx="3.5" fill="#ebecef"/>
+<rect x="12" y="90" width="40" height="7" rx="3.5" fill="#ebecef"/>
+<rect x="12" y="106" width="54" height="7" rx="3.5" fill="#ebecef"/>
+<circle cx="22" cy="176" r="7" fill="#ccd1d9"/>
+<rect x="36" y="170" width="34" height="6" rx="3" fill="#dfe2e6"/>
+<rect x="104" y="28" width="176" height="9" rx="4.5" fill="#e4e6ea"/>
+<rect x="104" y="48" width="140" height="9" rx="4.5" fill="#eceef1"/>
+<rect x="104" y="68" width="158" height="9" rx="4.5" fill="#eceef1"/>
+<rect x="100" y="120" width="196" height="46" rx="10" fill="#fcfcfd" stroke="#eaebee"/>
+<rect x="114" y="137" width="92" height="7" rx="3.5" fill="#e4e6ea"/>
+<circle cx="272" cy="146" r="6" fill="#4e75df"/>
+</svg>`;
+
   const CONTROL_CSS = `
-  #${ROW_ID} {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 20px;
-    /* 外观页正文是 flex 列容器，不加这行会被压扁 */
-    flex: 0 0 auto;
-    min-height: 44px;
-    padding: 20px 0 16px;
-    margin-bottom: 16px;
-    border-bottom: 0.5px solid rgba(0, 0, 0, 0.102);
-    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue",
-                 "Segoe UI", "Microsoft YaHei", sans-serif;
+  #${CELL_ID} { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  #${CELL_ID} button.wbds-theme-card {
+    background-color: #ffffff;
+    background-size: cover;
+    background-position: center;
+    border: 1px solid rgba(0, 0, 0, 0.09);
   }
-  #${ROW_ID} .wbds-copy { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-  #${ROW_ID} .wbds-title {
-    font-size: 14px; font-weight: 500; line-height: 22px; color: #0f1115;
+  #${CELL_ID} button.wbds-theme-card[aria-pressed="true"] {
+    box-shadow: 0 0 0 2px #0f1115;
+    border-color: transparent;
   }
-  #${ROW_ID} .wbds-desc {
-    font-size: 12px; font-weight: 400; line-height: 18px; color: #81858c;
-  }
-  #${ROW_ID} .wbds-opts { display: flex; gap: 8px; flex-shrink: 0; }
-  #${ROW_ID} button {
-    height: 30px;
-    padding: 0 12px;
-    border: none;
-    border-radius: 8px;
-    background-color: #f5f6f7;
-    color: #0f1115;
-    font-family: inherit;
-    font-size: 12px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background-color 120ms ease, color 120ms ease;
-    -webkit-appearance: none;
-    appearance: none;
-  }
-  #${ROW_ID} button:hover { background-color: #eceef2; }
-  #${ROW_ID} button[aria-pressed="true"] {
-    background-color: #0f1115;
-    color: #ffffff;
-  }
+  #${CELL_ID} .appearance-card__name { font-weight: 500; }
   `;
 
-  /* ---------- 状态 ---------- */
   const readMode = () => {
-    try {
-      return localStorage.getItem(LS_KEY) === MODE_NATIVE ? MODE_NATIVE : MODE_DSH;
-    } catch {
-      return MODE_DSH;
-    }
+    try { return localStorage.getItem(LS_MODE) === 'native' ? 'native' : 'dsh'; } catch { return 'dsh'; }
   };
 
-  const paint = (mode) => {
-    if (mode === MODE_DSH) {
-      document.documentElement.setAttribute('data-wbskin', 'dsh');
-    } else {
-      document.documentElement.removeAttribute('data-wbskin');
-    }
-    document.querySelectorAll(`#${ROW_ID} button`).forEach((b) => {
-      b.setAttribute('aria-pressed', String(b.dataset.mode === mode));
-    });
+  const paint = () => {
+    const active = readMode() === 'dsh';
+    const card = document.querySelector(`#${CELL_ID} button.wbds-theme-card`);
+    if (card) card.setAttribute('aria-pressed', String(active));
+    if (active) document.documentElement.setAttribute('data-wbskin', 'dsh');
+    else document.documentElement.removeAttribute('data-wbskin');
   };
 
   const setMode = (mode) => {
-    try { localStorage.setItem(LS_KEY, mode); } catch {}
-    paint(mode);
+    try { localStorage.setItem(LS_MODE, mode); } catch { /* 忽略 */ }
+    /* 显式广播一次：storage 事件异步且只发给其他窗口，
+       主窗口的 mode-sync.js 两个键都监听，谁先到算谁的。 */
+    try {
+      localStorage.setItem(PING, JSON.stringify({ mode, ts: Date.now() }));
+    } catch { /* 忽略 */ }
+    paint();
   };
 
-  /* ---------- 构建 ---------- */
   const build = () => {
-    const row = document.createElement('div');
-    row.id = ROW_ID;
-    row.innerHTML = `
-      <div class="wbds-copy">
-        <span class="wbds-title">界面风格</span>
-        <span class="wbds-desc">切换后立即生效，选择会被记住。</span>
-      </div>
-      <div class="wbds-opts">
-        <button type="button" data-mode="native">WorkBuddy 原生</button>
-        <button type="button" data-mode="dsh">dsh 风格</button>
-      </div>
+    const cell = document.createElement('div');
+    cell.className = 'appearance-card-cell';
+    cell.id = CELL_ID;
+    cell.innerHTML = `
+      <button type="button" class="appearance-card wbds-theme-card" aria-pressed="false"
+              style="background-image:url('data:image/svg+xml;charset=utf-8,${encodeURIComponent(COVER_SVG)}')"></button>
+      <span class="appearance-card__name">dsh</span>
     `;
-    row.querySelectorAll('button').forEach((b) => {
-      b.addEventListener('click', (e) => {
-        e.stopPropagation();
-        setMode(b.dataset.mode);
-      });
+    cell.querySelector('button').addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setMode('dsh');
     });
-    return row;
+    return cell;
   };
 
-  /* 外观页才挂：优先放在「全部主题」标题之前 */
+  /* 点原生主题卡 → 回到原生 */
+  const onGridClick = (e) => {
+    const t = e.target instanceof Element ? e.target : null;
+    if (!t) return;
+    const card = t.closest('button.appearance-card');
+    if (!card || card.classList.contains('wbds-theme-card')) return;
+    setMode('native');
+  };
+
   const ensure = () => {
-    // 每次都刷新样式内容，避免改了 CSS 但旧 style 标签留着不更新
     let st = document.getElementById(STYLE_ID);
     if (!st) {
       st = document.createElement('style');
@@ -121,42 +113,53 @@ window.__wbdsSwitch = (() => {
     }
     if (st.textContent !== CONTROL_CSS) st.textContent = CONTROL_CSS;
 
-    // 幂等：已存在就只同步按钮状态，绝不重建 —— 重建会再次触发
-    // MutationObserver，形成「插入→触发→再插入」的死循环，把渲染进程拖死。
-    if (document.getElementById(ROW_ID)) {
-      paint(readMode());
-      return true;
-    }
+    const grid = document.querySelector(GRID_SEL);
+    if (!grid) return false;
+    grid.removeEventListener('click', onGridClick);
+    grid.addEventListener('click', onGridClick);
 
-    const listHeader = document.querySelector('.appearance-list__header');
-    const body = document.querySelector('.appearance-panel__body');
-    if (listHeader && listHeader.parentElement) {
-      listHeader.parentElement.insertBefore(build(), listHeader);
-      paint(readMode());
+    const existing = document.getElementById(CELL_ID);
+    if (existing && existing.parentElement === grid) {
+      paint();
       return true;
     }
-    if (body) {
-      body.insertBefore(build(), body.firstChild);
-      paint(readMode());
-      return true;
-    }
-    return false;
+    if (existing) existing.remove();
+
+    const cell = build();
+    /* 放在「敬请期待」占位卡之前；没有占位卡就追加到末尾 */
+    const placeholder = [...grid.querySelectorAll('.appearance-card-cell')].find((c) =>
+      /敬请期待/.test(c.textContent || '')
+    );
+    if (placeholder) grid.insertBefore(cell, placeholder);
+    else grid.appendChild(cell);
+
+    paint();
+    return true;
   };
 
-  /* 页面是 React 渲染的，切页会重建 DOM，需要持续补挂 */
   ensure();
-  const host = document.querySelector('.settings-modal__content') || document.body;
-  if (!window.__wbdsObserver) {
-    window.__wbdsObserver = new MutationObserver(() => ensure());
-    window.__wbdsObserver.observe(host, { childList: true, subtree: true });
-  }
+  /* 观察 document.body 而不是 .settings-modal__content：切主题会让 React
+     整棵重建，挂在旧节点上的 observer 会跟着失效，卡片就再也补不回来。 */
+  const observer = new MutationObserver(() => ensure());
+  observer.observe(document.body, { childList: true, subtree: true });
+  /* 再兜一层定时检查（便宜）：卡片不在就补，在了就什么都不做 */
+  const timer = setInterval(() => {
+    if (!document.getElementById(CELL_ID)) ensure();
+  }, 1200);
 
-  // 首次加载按存储值恢复，保证重启后保持上次选择
-  paint(readMode());
+  paint();
 
   return {
     mode: readMode(),
-    mounted: !!document.getElementById(ROW_ID),
-    hasSkin: document.documentElement.getAttribute('data-wbskin'),
+    mounted: !!document.getElementById(CELL_ID),
+    setMode,
+    destroy() {
+      observer.disconnect();
+      clearInterval(timer);
+      const grid = document.querySelector(GRID_SEL);
+      if (grid) grid.removeEventListener('click', onGridClick);
+      document.getElementById(CELL_ID)?.remove();
+      document.getElementById(STYLE_ID)?.remove();
+    },
   };
 })();
