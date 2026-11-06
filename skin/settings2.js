@@ -780,7 +780,11 @@ window.__wbdsSettings2 = (() => {
   };
 
   /* ---------- 记忆落盘：写命令 → 守护进程执行 → 读结果 ---------- */
-  const pollCmd = (id) => {
+  /* 记忆文件列表的指纹：文件增删改名都会变，比时间戳可靠
+     （localdata 可能在 cmdResult 之前就推过去了，此时 ts 已经是最新的） */
+  const memSig = () => ((localData() || {}).memory || []).map((m) => m.file).join('|');
+
+  const pollCmd = (id, sig0) => {
     const t0 = Date.now();
     const timer = setInterval(() => {
       let r = null;
@@ -789,13 +793,12 @@ window.__wbdsSettings2 = (() => {
         clearInterval(timer);
         toast(r.ok ? r.msg : '失败：' + r.msg);
         if (!r.ok) return;
-        /* 守护进程会在落盘后立刻推一次 localdata，等它到了再重渲染 */
-        const ts0 = (localData() || {}).ts || 0;
+        /* 守护进程落盘后会再推一次 localdata：等列表指纹变了再重渲染 */
         let n = 0;
         const wait = setInterval(() => {
           n++;
-          const now = (localData() || {}).ts || 0;
-          if (now > ts0 || n > 12) { clearInterval(wait); renderPanel(); }
+          const changed = memSig() !== sig0;
+          if (changed || n > 20) { clearInterval(wait); renderPanel(); }
         }, 400);
       } else if (Date.now() - t0 > 15000) {
         clearInterval(timer);
@@ -806,9 +809,10 @@ window.__wbdsSettings2 = (() => {
 
   const runCmd = (payload, note) => {
     const id = String(Date.now());
+    const sig0 = memSig();
     write('wbds.cmd', JSON.stringify({ ...payload, id }));
     toast(note || '已提交');
-    pollCmd(id);
+    pollCmd(id, sig0);
   };
 
   const onClick = (e) => {
