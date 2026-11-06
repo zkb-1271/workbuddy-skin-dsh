@@ -49,7 +49,6 @@ window.__wbdsCredits = (() => {
       '<img alt="" src="' + (window.__WBDS_AVATAR || '') + '"></button>' +
       '<span class="wbds-c-label">总积分</span>' +
       '<span class="wbds-c-num" data-c="total">—</span>' +
-      '<span class="wbds-c-dot">·</span>' +
       '<span class="wbds-c-label">今日</span>' +
       '<span class="wbds-c-num" data-c="today">—</span>';
     /* 点头像 → 自建设置页（settings2.js）。没有就什么都不做。 */

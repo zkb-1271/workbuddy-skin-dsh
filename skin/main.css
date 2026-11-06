@@ -780,10 +780,6 @@ body.wbds-resizing {
   font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
-:root[data-wbskin="dsh"] #wbds-credits-widget .wbds-c-dot {
-  opacity: 0.4;
-}
-
 /* ---------- 14. 侧栏积分条里的头像入口 ---------- */
 :root[data-wbskin="dsh"] #wbds-credits-widget {
   gap: 8px;
