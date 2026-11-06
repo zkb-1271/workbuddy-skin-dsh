@@ -409,16 +409,45 @@ window.__wbdsSettings2 = (() => {
 
   const panelMemory = () => {
     const d = localData();
-    const mem = (d && d.memory) || [];
-    const docs = (d && d.userDocs) || [];
     if (!d) return `<div class="wbs2-card">${row('长期记忆', '<span class="wbs2-dim">读取中…</span>')}</div>`;
+
+    /* 编辑态：整页只留编辑器，避免列表分心 */
+    if (memEdit) {
+      return `
+      <div class="wbs2-card">
+        <div class="wbs2-row wbs2-row--title">
+          <span class="wbs2-row-label">${memEdit.isNew ? '新建记忆' : esc(memEdit.file)}
+            <span class="wbs2-row-sub">Markdown · 保存后写入 ~/.workbuddy/memory</span></span>
+        </div>
+        ${
+          memEdit.isNew
+            ? `<div class="wbs2-row"><span class="wbs2-row-label">标题</span>
+                 <input class="wbs2-input" data-act="mem-title" value="${esc(memEdit.title || '')}" placeholder="例如：项目偏好" /></div>`
+            : ''
+        }
+        <textarea class="wbs2-editor" data-act="mem-content" spellcheck="false">${esc(memEdit.content || '')}</textarea>
+        <div class="wbs2-actions">
+          <span class="wbs2-dim">守护进程每 5 秒取一次命令</span>
+          <span class="wbs2-btn-group">
+            <button class="wbs2-btn" data-act="mem-cancel">取消</button>
+            <button class="wbs2-btn wbs2-btn--primary" data-act="mem-save">保存</button>
+          </span>
+        </div>
+      </div>`;
+    }
+
+    const mem = d.memory || [];
+    const docs = d.userDocs || [];
     const memRows = mem.length
       ? mem
           .map((m, i) => {
             const open = expanded.has('mem' + i);
             return `<div class="wbs2-row wbs2-row--click" data-act="mem-toggle" data-key="mem${i}">
                 <span class="wbs2-row-label">${esc(m.title)}<span class="wbs2-row-sub">${bytes(m.bytes)} · ${relTime(m.mtime)}${m.mine ? ' · 当前账号' : ''}</span></span>
-                <span class="wbs2-dim">${open ? '收起' : '查看'}</span>
+                <span class="wbs2-row-ops">
+                  <button class="wbs2-btn wbs2-btn--sm" data-act="mem-edit" data-file="${esc(m.file)}">编辑</button>
+                  <button class="wbs2-btn wbs2-btn--sm" data-act="mem-del" data-file="${esc(m.file)}">删除</button>
+                </span>
               </div>
               ${open ? `<pre class="wbs2-pre">${esc(m.preview || '（内容为空）')}</pre>` : ''}`;
           })
@@ -428,9 +457,15 @@ window.__wbdsSettings2 = (() => {
       ? docs.map((x) => row(esc(x.name.replace('.md', '')), `<span class="wbs2-dim">${bytes(x.bytes)} · ${relTime(x.mtime)}</span>`)).join('')
       : '';
     return `
-      <div class="wbs2-card">${memRows}</div>
+      <div class="wbs2-card">
+        <div class="wbs2-row wbs2-row--title">
+          <span class="wbs2-row-label">用户记忆<span class="wbs2-row-sub">${mem.length} 个文件</span></span>
+          <button class="wbs2-btn wbs2-btn--sm" data-act="mem-new">新建</button>
+        </div>
+        ${memRows}
+      </div>
       ${docRows ? `<div class="wbs2-card">${docRows}</div>` : ''}
-      <p class="wbs2-note">记忆文件在 ~/.workbuddy/memory；这里是只读视图，编辑请改对应 Markdown。</p>`;
+      <p class="wbs2-note">编辑直接改写 ~/.workbuddy/memory 下的 Markdown；删除是移到内存目录的 .trash，可以手动找回。</p>`;
   };
 
   const panelAgents = () => {
@@ -651,6 +686,7 @@ window.__wbdsSettings2 = (() => {
   let active = 'credits';
   let toastEl = null;
   const expanded = new Set();   /* 记忆预览的展开态（重渲染不丢） */
+  let memEdit = null;          /* { file, title, content, isNew }：正在编辑的记忆 */
 
   const toast = (msg) => {
     if (!toastEl) {
@@ -743,6 +779,38 @@ window.__wbdsSettings2 = (() => {
     toast('已保存');
   };
 
+  /* ---------- 记忆落盘：写命令 → 守护进程执行 → 读结果 ---------- */
+  const pollCmd = (id) => {
+    const t0 = Date.now();
+    const timer = setInterval(() => {
+      let r = null;
+      try { r = JSON.parse(localStorage.getItem('wbds.cmdResult') || 'null'); } catch { r = null; }
+      if (r && String(r.id) === String(id)) {
+        clearInterval(timer);
+        toast(r.ok ? r.msg : '失败：' + r.msg);
+        if (!r.ok) return;
+        /* 守护进程会在落盘后立刻推一次 localdata，等它到了再重渲染 */
+        const ts0 = (localData() || {}).ts || 0;
+        let n = 0;
+        const wait = setInterval(() => {
+          n++;
+          const now = (localData() || {}).ts || 0;
+          if (now > ts0 || n > 12) { clearInterval(wait); renderPanel(); }
+        }, 400);
+      } else if (Date.now() - t0 > 15000) {
+        clearInterval(timer);
+        toast('超时：守护进程可能没在跑');
+      }
+    }, 400);
+  };
+
+  const runCmd = (payload, note) => {
+    const id = String(Date.now());
+    write('wbds.cmd', JSON.stringify({ ...payload, id }));
+    toast(note || '已提交');
+    pollCmd(id);
+  };
+
   const onClick = (e) => {
     const t = e.target instanceof Element ? e.target : null;
     if (!t) return;
@@ -783,6 +851,32 @@ window.__wbdsSettings2 = (() => {
       if (expanded.has(k)) expanded.delete(k);
       else expanded.add(k);
       renderPanel();
+    } else if (a === 'mem-edit') {
+      const d = localData() || {};
+      const m = (d.memory || []).find((x) => x.file === act.dataset.file);
+      if (!m) { toast('找不到这个文件'); return; }
+      memEdit = { file: m.file, content: m.content ?? m.preview ?? '', isNew: false };
+      renderPanel();
+    } else if (a === 'mem-new') {
+      memEdit = { file: '', title: '', content: '# ', isNew: true };
+      renderPanel();
+    } else if (a === 'mem-cancel') {
+      memEdit = null;
+      renderPanel();
+    } else if (a === 'mem-save') {
+      if (!memEdit) return;
+      const isNew = memEdit.isNew;
+      const payload = isNew
+        ? { op: 'mem.create', title: (memEdit.title || '').trim(), content: memEdit.content || '' }
+        : { op: 'mem.write', file: memEdit.file, content: memEdit.content || '' };
+      memEdit = null;
+      renderPanel();
+      runCmd(payload, isNew ? '正在新建…' : '正在保存…');
+    } else if (a === 'mem-del') {
+      const file = act.dataset.file;
+      if (!file) return;
+      renderPanel();
+      runCmd({ op: 'mem.delete', file }, '正在删除…');
     } else if (a === 'copy') {
       const text = act.dataset.copy || '';
       try { navigator.clipboard.writeText(text); } catch { /* 忽略 */ }
@@ -821,7 +915,15 @@ window.__wbdsSettings2 = (() => {
       if (url) window.open(url, '_blank');
     }
   };
+  const onInput = (e) => {
+    const t = e.target;
+    if (!memEdit || !(t instanceof Element)) return;
+    if (t.dataset.act === 'mem-content') memEdit.content = t.value;
+    else if (t.dataset.act === 'mem-title') memEdit.title = t.value;
+  };
+
   root.addEventListener('click', onClick);
+  root.addEventListener('input', onInput);
 
   const onKey = (e) => {
     if (e.key === 'Escape' && root.classList.contains('open')) { e.stopPropagation(); close(); }
@@ -833,6 +935,8 @@ window.__wbdsSettings2 = (() => {
     close,
     destroy() {
       document.removeEventListener('keydown', onKey, true);
+      root.removeEventListener('click', onClick);
+      root.removeEventListener('input', onInput);
       root.remove();
     },
   };

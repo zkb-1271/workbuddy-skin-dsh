@@ -1376,3 +1376,45 @@ body.wbds-resizing {
   --cr-brand-primary: #4e75df;
   --cr-brand-secondary: #7d9be8;
 }
+
+/* ---------- 20. 记忆编辑：文本框 / 输入框 / 行内按钮组 ---------- */
+#wbds-settings2 .wbs2-editor {
+  display: block;
+  width: calc(100% - 28px);
+  margin: 0 14px;
+  min-height: 300px;
+  padding: 10px 12px;
+  border: 1px solid rgba(0, 0, 0, 0.07);
+  border-radius: 8px;
+  background-color: #fcfcfd;
+  color: #111214;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12.5px;
+  line-height: 19px;
+  resize: vertical;
+  outline: none;
+}
+#wbds-settings2 .wbs2-editor:focus {
+  border-color: rgba(78, 117, 223, 0.55);
+  background-color: #ffffff;
+}
+#wbds-settings2 .wbs2-input {
+  width: 220px;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid rgba(0, 0, 0, 0.09);
+  border-radius: 7px;
+  background-color: #ffffff;
+  color: #111214;
+  font-family: inherit;
+  font-size: 13px;
+  outline: none;
+}
+#wbds-settings2 .wbs2-input:focus {
+  border-color: rgba(78, 117, 223, 0.55);
+}
+#wbds-settings2 .wbs2-row-ops {
+  display: inline-flex;
+  gap: 6px;
+  flex: 0 0 auto;
+}

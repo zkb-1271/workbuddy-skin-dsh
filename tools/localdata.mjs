@@ -66,6 +66,8 @@ const collectMemory = (uid) => {
       mtime: st.mtime,
       // 预览截断，别把整份文件塞进 localStorage
       preview: body.slice(0, 400),
+      // 编辑页需要全文；记忆文件都很小，200KB 封顶足够
+      content: text.slice(0, 200000),
       mine: f.startsWith(uid),
     });
   }

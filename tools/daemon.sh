@@ -96,6 +96,11 @@ fi
 WIN_COUNT=$(curl -s -m 1 "http://127.0.0.1:$PORT/json" 2>/dev/null | grep -c '"webSocketDebuggerUrl"' || true)
 SIGNATURE="$PID-$WIN_COUNT"
 
+# ---------- 4.5 前端命令队列（记忆编辑等，每轮都检查） ----------
+# 页面把命令写进 localStorage['wbds.cmd']，这里执行后回写结果。
+# 没命令时 cmd.mjs 连上读一次就退出，开销只有一次 node 启动。
+node "$PROJ/tools/cmd.mjs" >>"$LOG" 2>&1 || true
+
 # ---------- 3.5 积分数据刷新（60s 节流） ----------
 # 依赖主窗口里 credits.js 创建的隐藏 iframe；成功失败都记 ts，
 # 避免无 iframe 时每 5s 刷一次日志。
