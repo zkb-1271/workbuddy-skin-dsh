@@ -1414,3 +1414,22 @@ body.wbds-resizing {
   gap: 6px;
   flex: 0 0 auto;
 }
+
+/* ---------- 21. 消息编辑态：输入文字不居中 ----------
+   现象：点「编辑」后，输在框里的文字贴在顶部，下面空一大截。
+   原因（实测）：.cr-input-container 被 React 写死 height:50px，
+   而 .cr-input-editor-host 有自己的 min-height（撑到 64），
+   里面又是 align-items:center 把 50 高的编辑区居中放，
+   结果文字整体上移、下半被容器裁掉。
+   修法：让 host 跟随容器高度（100%），再让编辑区把段落垂直居中。 */
+:root[data-wbskin="dsh"] .cr-user-message-editor .cr-input-editor-host {
+  height: 100% !important;
+  min-height: 0 !important;
+  align-items: stretch !important;
+}
+:root[data-wbskin="dsh"] .cr-user-message-editor [data-slate-editor] {
+  display: flex !important;
+  flex-direction: column;
+  justify-content: center;
+  height: 100% !important;
+}
