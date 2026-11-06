@@ -5,3 +5,6 @@ state/
 logs/
 skin/avatar.local.js
 skin/assets/avatar.local.png
+
+# 本地开发资料（AGENTS.md / 截图 / 日志 / state）不进仓库
+.internal/
