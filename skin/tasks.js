@@ -32,6 +32,16 @@ window.__wbdsTasks = (() => {
     el.dispatchEvent(new MouseEvent('click', { ...o, button: 0 }));
   };
 
+  /* 把「查看更多 / 收起」摆到它该在的位置。
+     ⚠️ 不能只 append 一次就算完：React 增量渲染会用 insertBefore 往块里插条目，
+     我们 append 的节点会被一路挤到块的最前面（表现为「查看更多」跑到列表上方）。
+     归档改成真删除后列表条目会频繁增删，这个问题才暴露出来。 */
+  const placeRow = (row, items, expanded) => {
+    if (!items.length) return;
+    const anchor = expanded ? items[items.length - 1] : items[Math.min(LIMIT, items.length) - 1];
+    if (anchor && row.previousElementSibling !== anchor) anchor.after(row);
+  };
+
   const ensureRow = (block) => {
     let row = block.querySelector('.' + ROW_CLS);
     if (!row) {
@@ -119,6 +129,7 @@ window.__wbdsTasks = (() => {
         row.style.display = '';
         const label = expanded ? '收起' : `查看更多 (${hidden})`;
         if (row.textContent.trim() !== label) row.textContent = label;
+        placeRow(row, items, expanded);
 
       }
     } finally {
