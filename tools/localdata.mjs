@@ -191,6 +191,21 @@ const collectSandbox = () => {
   return { rules, extra, groups };
 };
 
+/* 已归档会话：真源在 sqlite（sessions.status='archived'），不是 localStorage。
+   设置页「已归档会话 N」用这个数字；旧键 genie-archived-session-ids 只作兜底。 */
+const collectArchived = async () => {
+  try {
+    const { stdout } = await execFileP('sqlite3', [
+      path.join(WB, 'workbuddy.db'),
+      "select id from sessions where status='archived' and deleted_at is null;",
+    ]);
+    const ids = stdout.split('\n').map((s) => s.trim()).filter(Boolean);
+    return { count: ids.length, ids };
+  } catch {
+    return { count: 0, ids: [] };
+  }
+};
+
 async function main() {
   const ts = await listTargets();
   /* 设置窗口也是 app.asar/renderer 页面 —— 必须按 windowAppId 挑主窗口 */
@@ -228,6 +243,7 @@ async function main() {
     disk: await collectDisk(),
     prefs: collectPrefs(uid),
     sandbox: collectSandbox(),
+    archived: await collectArchived(),
   };
 
   const obj = JSON.stringify(data);

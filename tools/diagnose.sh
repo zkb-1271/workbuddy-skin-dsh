@@ -3,7 +3,9 @@
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-LABEL="com.zkb.workbuddy-dsh-skin"
+LABEL="com.dsh-skin.agent"                        # 与 install-daemon.sh 保持一致
+LEGACY_LABEL="com.zkb.workbuddy-dsh-skin"          # 早期个人版装的，一并认
+[ -f "$HOME/Library/LaunchAgents/$LABEL.plist" ] || LABEL="$LEGACY_LABEL"
 PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
 PORT=9222
 BUNDLE_ID="com.tencent.workbuddy.mac"
@@ -28,7 +30,9 @@ else
 fi
 
 echo "[3] 环境变量（决定 Dock 启动是否带端口）"
+# 沙箱里 launchctl getenv 读不到用户域，daemon 会把实际值记到 state/env-value，拿它兜底
 VAL=$(launchctl getenv WORKBUDDY_REMOTE_DEBUGGING_PORT 2>/dev/null || true)
+[ -n "$VAL" ] || VAL=$(cat "$HOME/.dsh-skin/state/env-value" 2>/dev/null || true)
 if [ "$VAL" = "$PORT" ]; then
   ok "WORKBUDDY_REMOTE_DEBUGGING_PORT=$VAL"
 elif [ -z "$VAL" ]; then

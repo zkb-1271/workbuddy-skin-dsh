@@ -535,8 +535,10 @@ window.__wbdsSettings2 = (() => {
     <p class="wbs2-note">导入需要客户端文件系统权限。</p>`;
 
   const panelData = () => {
-    const arch = readJson('genie-archived-session-ids', []);
-    const archN = Array.isArray(arch) ? arch.length : 0;
+    /* 归档真源是 sqlite（sessions.status），由 daemon 的 localdata.mjs 采集；
+       老键 genie-archived-session-ids 只作兜底，别再拿它当数量 */
+    const d = localData();
+    const archN = d?.archived?.count ?? (Array.isArray(readJson('genie-archived-session-ids', [])) ? readJson('genie-archived-session-ids', []).length : 0);
     return `
     <div class="wbs2-card">
       ${row('缓存目录', '<span class="wbs2-mono">~/.workbuddy</span>')}
@@ -551,7 +553,7 @@ window.__wbdsSettings2 = (() => {
       ${row(
         '已归档会话',
         `<span class="wbs2-mono">${archN}</span>${
-          archN ? '<button class="wbs2-btn" data-act="unarchive-all">全部恢复</button>' : ''
+          archN ? '<button class="wbs2-btn" data-act="open-archived">查看归档列表</button>' : ''
         }`
       )}
       ${actionsRow('只清缓存，不动对话记录', '<button class="wbs2-btn" data-act="clear-cache">清理缓存</button>')}
@@ -900,11 +902,11 @@ window.__wbdsSettings2 = (() => {
       setEffort(act.dataset.val);
     } else if (a === 'think') {
       setThink(act.dataset.on !== '1');
-    } else if (a === 'unarchive-all') {
-      write('genie-archived-session-ids', '[]');
-      window.__wbdsArchive?.pass?.();
-      renderPanel();
-      toast('已恢复全部归档会话');
+    } else if (a === 'open-archived') {
+      /* 恢复单条/批量都交给原生「归档的任务」页 —— 那边是真的（走同一个会话 API），
+         我们这边不再自己维护一份归档名单 */
+      window.dispatchEvent(new CustomEvent('open-settings-archived-tasks'));
+      toast('已打开归档列表');
     } else if (a === 'clear-cache') {
       (async () => {
         try {
