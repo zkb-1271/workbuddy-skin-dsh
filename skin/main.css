@@ -1415,29 +1415,45 @@ body.wbds-resizing {
   flex: 0 0 auto;
 }
 
-/* ---------- 21. 消息编辑态：单行居中、多行自动长高 ----------
-   现象：点「编辑」后，输在框里的文字贴在顶部，下面空一大截。
-   原因（实测）：原生给 contenteditable 写死 `min-height:50px !important`，
-   单行 26px 的内容待在 50 高的盒子里靠上 → 下面空 24。
-   第一次修法（已废弃）是让 host / 编辑区 `height:100%` + `justify-content:center`：
-   单行确实居中了，但高度被锁成容器高度，**多行内容直接溢出被裁掉**
-   （用户 2026-11-07 截图：第二行下半截没了）。
+/* ---------- 21. 消息编辑态：不锁高度、多行自动长高、长文本必须换行 ----------
+   三次迭代，别再把弯的路走一遍：
+   ① 原生给 contenteditable 写死 `min-height:50px !important`，单行 26px 内容
+      靠上放 → 下面空 24（第一次报的 bug）。
+   ② 修法一（废弃）：host / 编辑区 `height:100%` + `justify-content:center`。
+      单行居中了，但高度锁死，**多行溢出被裁**。
+   ③ 修法二（废弃）：`height:auto` + `min-height:50px` + `display:flex` 居中。
+      高度能长了，但 flex 容器下长文本**不换行**、整行溢出被右侧裁掉
+      （2026-11-09 截图：文字一直顶到右边框、末尾半个字被切）。
 
-   现在：只给 min-height，不给 height。容器/编辑区一律 `height:auto`，
-   单行靠 min-height:50 + flex 居中，多行随内容长高（容器也跟着长）。
-   实测：单行 50px 盒子上下各 13px 留白；两行内容 98px，不裁。 */
+   现在：编辑区恢复原生 `display:block`，`min-height:0`（撤掉原生的 50），
+   上下留白改用 host 的 `padding-block` 给 —— 单行 12+26+12=50 与原来一样高，
+   多行随内容自然长高且正常换行。`white-space:pre-wrap` 兜底：原生若给了
+   `pre`（单行模式），这里也强制允许换行、同时保留手动换行。 */
 :root[data-wbskin="dsh"] .cr-user-message-editor .cr-input-container {
   height: auto !important;
 }
 :root[data-wbskin="dsh"] .cr-user-message-editor .cr-input-editor-host {
   height: auto !important;
   min-height: 0 !important;
-  align-items: stretch !important;
+  padding-top: 12px !important;
+  padding-bottom: 12px !important;
 }
+:root[data-wbskin="dsh"] .cr-user-message-editor .cr-input-editor-host [contenteditable="true"],
 :root[data-wbskin="dsh"] .cr-user-message-editor [data-slate-editor] {
-  display: flex !important;
-  flex-direction: column;
-  justify-content: center;
+  display: block !important;
   height: auto !important;
-  min-height: 50px;
+  min-height: 0 !important;
+  white-space: pre-wrap !important;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* 编辑框下面那行提示（「编辑后将从此处重新开始对话…」）整行去掉 —— 用户要求。
+   提示是 footer 里的第一个子项，去掉后 button 组要自己靠右，
+   否则 flex 的 space-between 只剩一个子项会把它顶到左边。 */
+:root[data-wbskin="dsh"] .cr-user-message-editor__hint {
+  display: none !important;
+}
+:root[data-wbskin="dsh"] .cr-user-message-editor__actions {
+  margin-left: auto;
 }
