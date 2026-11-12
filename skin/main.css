@@ -1428,15 +1428,39 @@ body.wbds-resizing {
    现在：编辑区恢复原生 `display:block`，`min-height:0`（撤掉原生的 50），
    上下留白改用 host 的 `padding-block` 给 —— 单行 12+26+12=50 与原来一样高，
    多行随内容自然长高且正常换行。`white-space:pre-wrap` 兜底：原生若给了
-   `pre`（单行模式），这里也强制允许换行、同时保留手动换行。 */
+   `pre`（单行模式），这里也强制允许换行、同时保留手动换行。
+
+   ---- 视觉：整块只留一层白面（2026-11-12）----
+   原生结构是三层套娃：`.cr-input-box__main`（淡紫 slot 背景 + 26px 圆角）
+   里面又是 `.cr-input-container`（被本皮肤第 4 节的全局规则刷成了白卡片 + 20 圆角），
+   于是看起来是「紫色大胶囊里塞一个白色胶囊」，按钮还挂在紫底上 —— 很脏。
+   原生本意是 container 透明、只有 __main 一层底。这里恢复那个意图：
+   __main 变成唯一的白卡片（12 圆角 + 发丝线），container 全透明，
+   footer 的按钮也放进同一张卡里。 */
+:root[data-wbskin="dsh"] .cr-user-message-editor .cr-input-box {
+  gap: 0;
+}
+:root[data-wbskin="dsh"] .cr-user-message-editor .cr-input-box__main {
+  background: var(--wbds-fill-base) !important;
+  background-image: none !important;
+  border: var(--wbds-hairline) solid var(--wbds-edge-l2);
+  border-radius: var(--wbds-r-md) !important;
+  padding: 6px 8px 8px !important;
+  gap: 0 !important;
+}
 :root[data-wbskin="dsh"] .cr-user-message-editor .cr-input-container {
   height: auto !important;
+  background: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
 }
 :root[data-wbskin="dsh"] .cr-user-message-editor .cr-input-editor-host {
   height: auto !important;
   min-height: 0 !important;
-  padding-top: 12px !important;
-  padding-bottom: 12px !important;
+  padding: 4px 4px !important;
 }
 :root[data-wbskin="dsh"] .cr-user-message-editor .cr-input-editor-host [contenteditable="true"],
 :root[data-wbskin="dsh"] .cr-user-message-editor [data-slate-editor] {
@@ -1456,4 +1480,48 @@ body.wbds-resizing {
 }
 :root[data-wbskin="dsh"] .cr-user-message-editor__actions {
   margin-left: auto;
+}
+
+/* footer 与按钮：跟皮肤其他地方的按钮同语言 —— 28 高、8 圆角、13px 字。
+   取消是幽灵按钮（无边框无底色，hover 才起底）；发送用输入区那颗蓝
+   （#4e75df / 禁用 #b8c8f2），跟右下角发送按钮是同一个语义，不要用黑色。 */
+:root[data-wbskin="dsh"] .cr-user-message-editor__footer {
+  padding-top: 8px !important;
+  gap: 8px;
+}
+:root[data-wbskin="dsh"] .cr-user-message-editor__cancel,
+:root[data-wbskin="dsh"] .cr-user-message-editor__send,
+:root[data-wbskin="dsh"] .cr-user-message-editor__resume {
+  border: 0 !important;
+  border-radius: var(--wbds-r-sm) !important;
+  padding: 4px 12px !important;
+  font-family: var(--wbds-font);
+  font-size: 13px !important;
+  font-weight: 500;
+  line-height: 20px !important;
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+:root[data-wbskin="dsh"] .cr-user-message-editor__cancel {
+  background: transparent !important;
+  color: var(--wbds-text-secondary) !important;
+}
+:root[data-wbskin="dsh"] .cr-user-message-editor__cancel:hover {
+  background: rgba(0, 0, 0, 0.05) !important;
+  color: var(--wbds-text-primary) !important;
+}
+:root[data-wbskin="dsh"] .cr-user-message-editor__send,
+:root[data-wbskin="dsh"] .cr-user-message-editor__resume {
+  background: #4e75df !important;
+  color: #ffffff !important;
+}
+:root[data-wbskin="dsh"] .cr-user-message-editor__send:hover,
+:root[data-wbskin="dsh"] .cr-user-message-editor__resume:hover {
+  background: #3f63c9 !important;
+}
+:root[data-wbskin="dsh"] .cr-user-message-editor__send:disabled,
+:root[data-wbskin="dsh"] .cr-user-message-editor__resume:disabled {
+  background: #b8c8f2 !important;
+  color: #ffffff !important;
+  cursor: default;
 }
