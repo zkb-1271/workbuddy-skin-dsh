@@ -14,23 +14,14 @@
 window.__wbdsCredits?.destroy?.();
 
 window.__wbdsCredits = (() => {
-  const FRAME_ID = 'wbds-credits-frame';
   const WIDGET_ID = 'wbds-credits-widget';
   const CACHE_KEY = 'wbds.credits.cache';
 
-  /* 隐藏 iframe：本身不读它的 DOM，只为 daemon 提供 CDP target。
-     放 body 下（不在 React 树里），SPA 换页不影响。 */
-  let frame = document.getElementById(FRAME_ID);
-  if (!frame) {
-    frame = document.createElement('iframe');
-    frame.id = FRAME_ID;
-    frame.src = 'https://www.workbuddy.cn/profile/credits-usage?embed=1&theme=light';
-    frame.setAttribute('aria-hidden', 'true');
-    frame.tabIndex = -1;
-    frame.style.cssText =
-      'position:fixed;left:-9999px;top:0;width:900px;height:700px;border:0;visibility:hidden;';
-    (document.body || document.documentElement).appendChild(frame);
-  }
+  /* 旧版这里还塞了一个 workbuddy.cn 的隐藏 iframe 借 cookie 调接口。
+     那个 iframe 的登录态会过期（跳到 /login/ → 接口 401），积分就永远显示「—」。
+     2026-11-14 起改成 daemon 直接借主窗口的 window.wb.http 取数，
+     这里不再需要 iframe；顺手把老版本留下的那个删掉。 */
+  document.getElementById('wbds-credits-frame')?.remove();
 
   const fmt = (v) => {
     if (v === null || v === undefined || isNaN(v)) return '—';
@@ -89,7 +80,8 @@ window.__wbdsCredits = (() => {
     destroy() {
       clearInterval(timer);
       document.getElementById(WIDGET_ID)?.remove();
-      document.getElementById(FRAME_ID)?.remove();
+      /* 老版本留下的隐藏 iframe 一并清掉（iframe 方案已废弃） */
+      document.getElementById('wbds-credits-frame')?.remove();
     },
   };
 })();

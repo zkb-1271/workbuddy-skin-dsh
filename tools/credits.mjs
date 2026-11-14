@@ -1,17 +1,24 @@
 /**
  * 积分数据刷新（daemon 每 60s 调一次，节流在 daemon.sh 里）。
  *
- * 原理：主窗口（file://）跨域拿不到 www.workbuddy.cn 的积分接口；
- * skin/credits.js 在主窗口里放了一个隐藏 iframe（workbuddy.cn 同源），
- * 本脚本通过 CDP 挂进 iframe 上下文调接口，再把结果写回主窗口：
- *   window.__wbdsCreditsData = { total, today, ts }
- *   localStorage['wbds.credits.cache'] = 同上（重启后先显缓存）
+ * 数据源：**主窗口自己的鉴权 HTTP 桥** `window.wb.http`（WorkBuddy 暴露的 SDK，
+ * 走主进程发的请求，token 由应用自己续期）。
  *
- * 实测可用的两个接口（都是 POST JSON，cookie 鉴权）：
- *   /billing/meter/get-user-resource-summary  → data.TotalCredits 总剩余积分
+ * 为什么不再用隐藏 iframe（2026-11-14 改）：
+ * 以前是在主窗口里塞一个 workbuddy.cn 的隐藏 iframe，借它的同源 cookie 调接口。
+ * 但那个 iframe 的登录态会过期（实测跳到 /login/，接口 401
+ * `invalid_token: session expired`），而应用主进程的登录态是好的 ——
+ * 结果就是侧栏积分永远显示「—」。现在直接借主进程的凭据，不再依赖 iframe。
+ *
+ * 接口（POST JSON）：
+ *   /billing/meter/get-user-resource-summary  → data.TotalCredits 总剩余积分，
+ *       data.CreditGroups[] 各积分池（Kind/Name/Cycle{Total,Remain,Used}Capacity）
  *   /billing/meter/get-user-request-usage     → data.total + data.data[] 每笔消耗
  *     参数 { startTime:'YYYY-MM-DD 00:00:00', endTime:'… 23:59:59', pageNum, pageSize }
- *     （注意 get-user-daily-usage 用同样的参数会 400 invalid params，别用）
+ *
+ * 写入：
+ *   window.__wbdsCreditsData = { total, today, groups, ts }
+ *   localStorage['wbds.credits.cache'] = 同上（重启后先显缓存）
  *
  * 失败退出码 1，daemon 记日志、60s 后重试。
  */
@@ -59,18 +66,6 @@ function attach(t) {
   });
 }
 
-async function findFrameTarget(tries = 20) {
-  for (let i = 0; i < tries; i++) {
-    try {
-      const ts = await listTargets();
-      const hit = ts.find((x) => (x.url || '').includes('credits-usage'));
-      if (hit) return hit;
-    } catch { /* 端口抖动，重试 */ }
-    await sleep(500);
-  }
-  return null;
-}
-
 async function findMainTarget() {
   const ts = await listTargets();
   for (const t of ts.filter((x) => x.type === 'page' && (x.url || '').includes('app.asar/renderer'))) {
@@ -84,80 +79,65 @@ async function findMainTarget() {
   return null;
 }
 
-const FETCH_EXPR = `(async () => {
-  const post = async (u, b) => {
-    const r = await fetch(u, { method: 'POST', credentials: 'include',
-      headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) });
-    return r.json();
-  };
+/* 在主窗口里完成：取数 + 写回 window / localStorage。 */
+const FETCH_AND_STORE = `(async () => {
+  const post = (u, b) => window.wb.http.post(u, b);
+  const d = new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  const day = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+  const s = await post('/billing/meter/get-user-resource-summary', {});
+  const data = (s && s.data) || {};
+  const total = data.TotalCredits === undefined || data.TotalCredits === null
+    ? null : parseFloat(data.TotalCredits);
+  const groups = (data.CreditGroups || []).map((g) => ({
+    kind: g.Kind,
+    name: g.Name,
+    total: parseFloat(g.CycleTotalCapacity || 0),
+    remain: parseFloat(g.CycleRemainCapacity || 0),
+    used: parseFloat(g.CycleUsedCapacity || 0),
+  })).filter((g) => g.kind);
+
+  let today = null;
   try {
-    const d = new Date();
-    const pad = (n) => String(n).padStart(2, '0');
-    const day = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
-    const s = await post('/billing/meter/get-user-resource-summary', {});
-    const total = s && s.data ? parseFloat(s.data.TotalCredits) : null;
-    const groups = ((s && s.data && s.data.CreditGroups) || [])
-      .map((g) => ({
-        kind: g.Kind,
-        name: g.Name,
-        total: parseFloat(g.CycleTotalCapacity || 0),
-        remain: parseFloat(g.CycleRemainCapacity || 0),
-        used: parseFloat(g.CycleUsedCapacity || 0),
-      }))
-      .filter((g) => g.kind);
-    let today = null;
-    try {
-      const pageSize = 500;
-      let page = 1, sum = 0, totalRows = 0;
-      for (let guard = 0; guard < 5; guard++) {
-        const r = await post('/billing/meter/get-user-request-usage',
-          { startTime: day + ' 00:00:00', endTime: day + ' 23:59:59', pageNum: page, pageSize });
-        const rows = (r.data && r.data.data) || [];
-        totalRows = (r.data && r.data.total) || 0;
-        for (const row of rows) {
-          if (String(row.requestTime || '').startsWith(day)) {
-            sum += parseFloat(row.credit || 0);
-          }
-        }
-        if (rows.length === 0 || page * pageSize >= totalRows) break;
-        page++;
+    const pageSize = 500;
+    let page = 1, sum = 0, totalRows = 0;
+    for (let guard = 0; guard < 5; guard++) {
+      const r = await post('/billing/meter/get-user-request-usage',
+        { startTime: day + ' 00:00:00', endTime: day + ' 23:59:59', pageNum: page, pageSize });
+      const rows = (r.data && r.data.data) || [];
+      totalRows = (r.data && r.data.total) || 0;
+      for (const row of rows) {
+        if (String(row.requestTime || '').startsWith(day)) sum += parseFloat(row.credit || 0);
       }
-      today = Math.round(sum * 100) / 100;
-    } catch { today = null; }
-    if (total === null && today === null) return { err: 'both empty' };
-    return { total, today, groups, ts: Date.now() };
-  } catch (e) {
-    return { err: String((e && e.message) || e) };
-  }
+      if (rows.length === 0 || page * pageSize >= totalRows) break;
+      page++;
+    }
+    today = Math.round(sum * 100) / 100;
+  } catch { today = null; }
+
+  if (total === null && today === null) return { err: 'both empty' };
+  const payload = { total, today, groups, ts: Date.now() };
+  window.__wbdsCreditsData = payload;
+  try { localStorage.setItem('wbds.credits.cache', JSON.stringify(payload)); } catch {}
+  return payload;
 })()`;
 
 async function main() {
-  const frame = await withTimeout(findFrameTarget(), 15000, '找 iframe');
-  console.error('credits: iframe target', frame ? 'ok' : 'missing');
-  if (!frame) {
-    console.error('credits: 隐藏 iframe target 不存在（皮肤可能还没注入）');
-    process.exit(1);
+  const main = await withTimeout(findMainTarget(), 15000, '找主窗口');
+  if (!main) { console.error('credits: 找不到主窗口'); process.exit(1); }
+
+  let data;
+  try {
+    data = await main.c.evalIn(FETCH_AND_STORE);
+  } catch (e) {
+    data = { err: String((e && e.message) || e) };
   }
-  const c = await attach(frame);
-  console.error('credits: attached iframe');
-  const data = await c.evalIn(FETCH_EXPR);
-  console.error('credits: fetched', JSON.stringify(data).slice(0, 120));
-  c.close();
+  main.c.close();
+
   if (!data || data.err) {
     console.error('credits: 取数失败', data && data.err);
     process.exit(1);
   }
-  const main = await withTimeout(findMainTarget(), 15000, '找主窗口');
-  if (!main) {
-    console.error('credits: 找不到主窗口');
-    process.exit(1);
-  }
-  const obj = JSON.stringify(data);              /* 对象字面量，赋给 window */
-  const str = JSON.stringify(JSON.stringify(data)); /* 字符串字面量，给 localStorage */
-  await main.c.evalIn(
-    `(() => { window.__wbdsCreditsData = ${obj}; try { localStorage.setItem('wbds.credits.cache', ${str}); } catch {} return 1; })()`
-  );
-  main.c.close();
   console.log(`credits: 总积分=${data.total} 今日=${data.today}`);
 }
 

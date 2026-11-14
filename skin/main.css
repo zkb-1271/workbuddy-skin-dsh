@@ -743,8 +743,10 @@ body.wbds-resizing {
 
 
 /* ---------- 13. 侧栏左下角积分小组件 ----------
-   数据由 daemon 侧 credits.mjs 借隐藏 iframe 从 workbuddy.cn 取回，
-   本地只负责渲染（credits.js）。数字保留 1 位小数，弱化的灰字。 */
+   数据由 daemon 侧 credits.mjs 通过主窗口的 window.wb.http（应用自己的鉴权）
+   取回，本地只负责渲染（credits.js）。数字保留 1 位小数，弱化的灰字。
+   （旧方案是塞一个 workbuddy.cn 隐藏 iframe 借 cookie，登录态一过期就永远
+   显示「—」，已废弃。） */
 :root[data-wbskin="dsh"] .conversation-sidebar {
   /* 小组件 absolute 锚点；不影响列表内 sticky 分组头（sticky 以滚动容器为准） */
   position: relative;
@@ -763,10 +765,17 @@ body.wbds-resizing {
   height: 40px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  /* 紧凑左对齐：用固定间距而不是 space-between ——
+     数字短的时候（比如「—」「0」）space-between 会把五项摊满整条，
+     看起来像散了架（2026-11-14 截图就是这个毛病）。 */
+  justify-content: flex-start;
+  gap: 6px;
   padding: 0 12px;
   border-radius: 8px;
-  background-color: transparent;
+  /* 侧栏是半透明的，行会从这条下面滚过去；不给底色就会看到文字互相叠 */
+  background-color: rgba(222, 227, 234, 0.96);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
   color: var(--wbds-text-primary);
   font-family: var(--wbds-font);
   font-size: 14px;
