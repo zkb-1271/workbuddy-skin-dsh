@@ -932,6 +932,17 @@ window.__wbdsSettings2 = (() => {
   root.addEventListener('input', onInput);
 
   const onKey = (e) => {
+    /* ⌘⇧, / Ctrl⇧, 开关自建设置页。
+       为什么需要：这个页唯一的入口是侧栏左下角头像，而头像挂在侧栏里 ——
+       侧栏收起（宽度 0）时整个入口都不见了；WorkBuddy 重新启动后如果侧栏是
+       收起的，就会表现成「皮肤在，但设置页打不开」。
+       ⌘, 归原生设置，所以这里退一位用 ⇧。 */
+    if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === ',' || e.code === 'Comma')) {
+      e.preventDefault();
+      e.stopPropagation();
+      root.classList.contains('open') ? close() : open();
+      return;
+    }
     if (e.key === 'Escape' && root.classList.contains('open')) { e.stopPropagation(); close(); }
   };
   document.addEventListener('keydown', onKey, true);
