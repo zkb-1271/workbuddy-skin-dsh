@@ -780,6 +780,27 @@ body.wbds-resizing {
   font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
+/* ---------- 13.5 侧栏悬停预览（hover peek）----------
+   原生收起后，鼠标划过展开按钮会浮出一块 264px 的预览面板。两个毛病：
+   1) 264 比展开态（约 305）窄，行内容按窄宽重排，标题几乎全被截断，很难看；
+   2) 顶栏那颗「展开侧边栏」和面板自带那颗几乎重叠（x=97 / 98），
+      看着像按钮在漂移、还多出一个幽灵图标。
+   处理：预览面板按展开态同宽渲染（宽度由 resize.js 观测后写进
+   --wbds-sidebar-w），预览期间藏掉顶栏那颗，只留面板自己的。 */
+:root[data-wbskin="dsh"] .conversation-list--hover-peek {
+  width: var(--wbds-sidebar-w, 305px) !important;
+  border-radius: var(--wbds-r-md) 0 0 var(--wbds-r-md);
+  box-shadow: 0 12px 40px -12px rgba(0, 0, 0, 0.28);
+}
+/* 预览期间，顶栏那颗「展开侧边栏」和面板自带那颗几乎完全重叠（x=97 / 98），
+   叠加起来像按钮在漂移、还多出一个重影。只藏顶栏那颗，面板自己的保留
+   （它是面板里的收起入口）。注意必须精确到 .workbuddy-topbar-title ——
+   面板那个按钮也在 .workbuddy-topbar 里，选择器放宽会把两个一起藏掉。 */
+:root[data-wbskin="dsh"] body.workbuddy-floating-layer-open
+  .workbuddy-topbar-title button[aria-label="展开侧边栏"] {
+  visibility: hidden;
+}
+
 /* ---------- 14. 侧栏积分条里的头像入口 ---------- */
 :root[data-wbskin="dsh"] #wbds-credits-widget {
   gap: 8px;

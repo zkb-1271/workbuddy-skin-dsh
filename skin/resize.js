@@ -79,11 +79,26 @@ window.__wbdsResize = (() => {
     return h;
   };
 
+  /* 侧栏展开宽度同步到 --wbds-sidebar-w：
+     原生悬停预览面板是写死 264px 的，比展开态窄，行内容会被挤断；
+     CSS 里用这个变量让预览面板按展开态同宽渲染。用户拖过侧栏宽度也能跟上。 */
+  let lastSbW = 0;
+  const syncSidebarW = () => {
+    const sb = document.querySelector('.conversation-sidebar');
+    if (!sb) return;
+    const w = Math.round(sb.getBoundingClientRect().width);
+    if (w > 120 && w !== lastSbW) {
+      lastSbW = w;
+      root.style.setProperty('--wbds-sidebar-w', w + 'px');
+    }
+  };
+
   /* 跟随正文右边界。每帧读一次 rect，位置没变就不写 style。 */
   let lastKey = '';
   const follow = () => {
     const content = document.querySelector('.cr-message-list__content');
     const h = ensureHandle();
+    syncSidebarW();
 
     /* 右侧面板打开时，正文会变得很窄，而且面板自带一条拖拽 sash（x≈正文右缘），
        我的手柄正好压在它上面会把 sash 挡住 —— 这时直接隐藏手柄。 */
