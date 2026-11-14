@@ -152,13 +152,21 @@ chmod +x install.sh uninstall.sh tools/*.sh
 ## 工作原理
 
 ```
-LaunchAgent（每 2 秒）
+LaunchAgent（每 2 秒，登录即启动）
    └─ 探测 9222 端口 → 有新窗口就自动重新注入
         └─ tools/apply.sh：往页面写 CSS、跑几个小脚本
              ├─ skin/main.css      全部样式（挂在 :root[data-wbskin="dsh"] 下）
              ├─ skin/*.js          列表状态、归档、积分条、设置页…
              └─ tools/*.mjs        读本地文件 / 调积分接口，回写给页面
 ```
+
+**皮肤是自启动的**：LaunchAgent 随登录加载，WorkBuddy 重启后窗口一出现
+（通常几秒）就自动注入，不用手动跑任何命令。
+
+每 10 秒还有一次健康检查：只要模式是 dsh，而页面上 `data-wbskin`、
+样式表或自建设置页少了任何一个，就当场重新注入（渲染进程重载、
+脚本被清掉这类情况都能自己恢复）。你主动切成原生时（`mode=native`）
+它绝不会抢回来。
 
 所有样式都挂在 `data-wbskin="dsh"` 属性下，**摘掉这个属性就是原生界面**，
 所以「切回原生」不会残留。
@@ -170,6 +178,10 @@ LaunchAgent（每 2 秒）
 bash tools/diagnose.sh     # 检查端口、窗口、注入状态
 tail -20 ~/.dsh-skin/logs/daemon.log
 ```
+
+**设置页打不开 / 找不到入口？**
+入口是侧栏左下角的圆形头像。侧栏收起时那个头像会跟着消失，
+按 **⌘⇧,（Ctrl+Shift+,）** 可以直接开关设置页。`⌘,` 仍然打开原生设置。
 
 **WorkBuddy 更新后样式乱了？**
 版本结构变了，需要跟进修复。清理缓存后重试：`./uninstall.sh && ./install.sh`。

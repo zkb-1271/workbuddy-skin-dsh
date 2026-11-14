@@ -117,6 +117,29 @@ if [ $((NOW - LAST_CRED)) -ge 60 ]; then
   node "$PROJ/tools/localdata.mjs" >>"$LOG" 2>&1 || log "localdata 采集失败"
 fi
 
+# ---------- 4.6 健康检查（每 10s）----------
+# 窗口签名没变不代表皮肤还在：渲染进程重载、脚本被清、注入只成功了一半，
+# 都会出现「皮肤在但缺一块」或「整片没挂上」。这里定期问一句页面自己，
+# 只要用户选的是 dsh 而 data-wbskin 不在，就清掉签名重注入。
+# （用户主动选原生时 mode=native，这里绝不抢回来。）
+NOW_H=$(date +%s)
+LAST_HEALTH=$(cat "$STATE/health-ts" 2>/dev/null || echo 0)
+if [ $((NOW_H - LAST_HEALTH)) -ge 10 ]; then
+  echo "$NOW_H" >"$STATE/health-ts"
+  HEALTH=$(cd "$PROJ/tools" && CDP_APP=main node cdp.mjs eval \
+    "(() => { const m = localStorage.getItem('wbds.skin.mode') || ''; const s = document.documentElement.getAttribute('data-wbskin') || 'none'; const c = document.getElementById('wb-dsh-skin') ? 1 : 0; const o = document.getElementById('wbds-settings2') ? 1 : 0; return [s, m, c, o].join('|'); })()" 2>/dev/null | tr -d '"' | tr -d ' \n' || true)
+  HSKIN=$(echo "$HEALTH" | cut -d'|' -f1)
+  HMODE=$(echo "$HEALTH" | cut -d'|' -f2)
+  HCSS=$(echo "$HEALTH" | cut -d'|' -f3)
+  HOVL=$(echo "$HEALTH" | cut -d'|' -f4)
+  if [ "$HMODE" != "native" ]; then
+    if [ "$HSKIN" = "none" ] || [ "$HCSS" = "0" ] || [ "$HOVL" = "0" ]; then
+      log "健康检查：皮肤不完整（skin=$HSKIN css=$HCSS settings=$HOVL mode=${HMODE:-默认}），重新注入"
+      rm -f "$STATE/signature"
+    fi
+  fi
+fi
+
 if [ "$(cat "$STATE/signature" 2>/dev/null || echo '')" = "$SIGNATURE" ]; then
   exit 0   # 已注入且窗口没变化，绝大多数情况走这里，开销只有两次 curl
 fi
