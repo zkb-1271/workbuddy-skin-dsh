@@ -25,6 +25,27 @@ window.__wbdsSettings2 = (() => {
   const LS_CRED_VIS = 'wbds.credits.visible';
   const LS_NAV_HIDDEN = 'wbds.settings.nav.hidden';   /* 被隐藏的导航项 key 数组 */
 
+  /* ---------- 主窗口侧栏的六个入口（与 hide.js 的 TAB_DEFS 一一对应） ----------
+     默认值 = 皮肤一直以来的取舍：只留 新建任务 / 定时任务。 */
+  const LS_TABS = 'wbds.sidebar.tabs';
+  const TAB_DEFS = [
+    { key: 'new', label: '新建任务' },
+    { key: 'assistant', label: '助理' },
+    { key: 'experts', label: '专家·技能·连接器' },
+    { key: 'cron', label: '定时任务' },
+    { key: 'library', label: '资料库' },
+    { key: 'more', label: '更多' },
+  ];
+  const TAB_DEFAULT = { new: 1, assistant: 0, experts: 0, cron: 1, library: 0, more: 0 };
+  const readTabs = () => {
+    let raw = null;
+    try { raw = JSON.parse(localStorage.getItem(LS_TABS) || 'null'); } catch { raw = null; }
+    return { ...TAB_DEFAULT, ...(raw && typeof raw === 'object' ? raw : {}) };
+  };
+  const writeTabs = (o) => {
+    try { localStorage.setItem(LS_TABS, JSON.stringify(o)); } catch { /* 忽略 */ }
+  };
+
   /* ---------- 图标（14px 线性，stroke=currentColor） ---------- */
   const P = {
     sliders: '<path d="M3 4h10M3 8h10M3 12h10"/><path d="M6 2.4v3.2M10.6 6.4v3.2M6.2 10.4v3.2"/>',
@@ -304,6 +325,7 @@ window.__wbdsSettings2 = (() => {
     const credOn = localStorage.getItem(LS_CRED_VIS) !== '0';
     const width = getComputedStyle(document.documentElement).getPropertyValue('--wbds-content-w').trim() || '自适应';
     const hiddenNav = readHiddenNav();
+    const tabs = readTabs();
     return `
       <div class="wbs2-card">
         <div class="wbs2-row">
@@ -323,6 +345,19 @@ window.__wbdsSettings2 = (() => {
         )}
         ${row('侧栏宽度', `<span class="wbs2-mono">${esc(read('agent-ui-sidebar-width') || '默认')}</span><span class="wbs2-dim"> px</span>`)}
         ${row('详情面板宽度', `<span class="wbs2-mono">${esc(read('agent-ui-detail-panel-width') || '默认')}</span><span class="wbs2-dim"> px</span>`)}
+      </div>
+      <div class="wbs2-card">
+        <div class="wbs2-row wbs2-row--title">
+          <span class="wbs2-row-label">侧栏栏目<span class="wbs2-row-sub">主窗口左侧的六个入口，关掉就只剩任务列表</span></span>
+          <button class="wbs2-btn wbs2-btn--sm" data-act="tabs-reset">恢复默认</button>
+        </div>
+        ${TAB_DEFS.map((t) => {
+          const on = tabs[t.key] ? 1 : 0;
+          return `<div class="wbs2-row wbs2-row--compact">
+            <span class="wbs2-row-label">${t.label}</span>
+            <span class="wbs2-switch${on ? ' is-on' : ''}" data-act="tab-switch" data-key="${t.key}" data-on="${on}"><i></i></span>
+          </div>`;
+        }).join('')}
       </div>
       <div class="wbs2-card">
         <div class="wbs2-row wbs2-row--title">
@@ -852,6 +887,17 @@ window.__wbdsSettings2 = (() => {
       renderNav();
       renderPanel();
       toast('已恢复全部栏目');
+    } else if (a === 'tab-switch') {
+      const key = act.dataset.key;
+      const tabs = readTabs();
+      tabs[key] = act.dataset.on === '1' ? 0 : 1;
+      writeTabs(tabs);
+      renderPanel();
+      toast(tabs[key] ? '已显示在主窗口侧栏' : '已从主窗口侧栏收起');
+    } else if (a === 'tabs-reset') {
+      writeTabs({ ...TAB_DEFAULT });
+      renderPanel();
+      toast('侧栏栏目已恢复默认');
     } else if (a === 'mem-toggle') {
       const k = act.dataset.key;
       if (expanded.has(k)) expanded.delete(k);

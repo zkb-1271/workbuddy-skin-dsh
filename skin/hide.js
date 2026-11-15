@@ -31,8 +31,24 @@ window.__wbdsHide = (() => {
     '应用管理', '安全中心', '关于', '获取帮助',
   ];
 
-  /* 主窗口侧栏：按导航项文本前辍隐藏 */
-  const TAB_HIDE = ['资料库', '更多', '助理', '专家·技能·连接器'];
+  /* 主窗口侧栏的六个入口：各自可以在自建设置页里开关（外观 → 侧栏栏目）。
+     默认值 = 皮肤一直以来的取舍：只留「新建任务 / 定时任务」，
+     其余四个（助理、专家·技能·连接器、资料库、更多）默认收起。 */
+  const LS_TABS = 'wbds.sidebar.tabs';
+  const TAB_DEFS = [
+    { key: 'new', label: '新建任务', match: '新建任务', def: 1 },
+    { key: 'assistant', label: '助理', match: '助理', def: 0 },
+    { key: 'experts', label: '专家·技能·连接器', match: '专家', def: 0 },
+    { key: 'cron', label: '定时任务', match: '定时任务', def: 1 },
+    { key: 'library', label: '资料库', match: '资料库', def: 0 },
+    { key: 'more', label: '更多', match: '更多', def: 0 },
+  ];
+  const defaultTabs = () => Object.fromEntries(TAB_DEFS.map((d) => [d.key, d.def]));
+  const readTabs = () => {
+    let raw = null;
+    try { raw = JSON.parse(localStorage.getItem(LS_TABS) || 'null'); } catch { raw = null; }
+    return { ...defaultTabs(), ...(raw && typeof raw === 'object' ? raw : {}) };
+  };
 
   /* 主窗口：按选择器隐藏 */
   const SEL_HIDE = [
@@ -76,9 +92,18 @@ window.__wbdsHide = (() => {
         else if (g.getAttribute(ATTR) === '1') g.removeAttribute(ATTR);
       }
     } else {
+      /* 侧栏入口：按用户开关逐个决定显隐（要能反向"显示回来"，
+         所以这里是 add/remove 成对处理，不是只 mark） */
+      const tabs = readTabs();
       for (const el of document.querySelectorAll('.conversation-list-tab-button')) {
         const t = (el.innerText || '').trim();
-        if (TAB_HIDE.some((x) => t.startsWith(x))) mark(el);
+        const def = TAB_DEFS.find((d) => t.startsWith(d.match));
+        if (!def) continue;
+        if (tabs[def.key] ? true : false) {
+          if (el.getAttribute(ATTR) === '1') el.removeAttribute(ATTR);
+        } else {
+          mark(el);
+        }
       }
       for (const sel of SEL_HIDE) {
         for (const el of document.querySelectorAll(sel)) mark(el);
@@ -103,14 +128,28 @@ window.__wbdsHide = (() => {
   // 或者观察器在页面重挂载时漏掉一拍，2 秒补一次标记（mark 是幂等的）
   const interval = setInterval(apply, 2000);
 
+  /* 自建设置页在另一个窗口写 localStorage 改侧栏栏目开关，
+     主窗口靠 storage 事件立刻跟上（不用等轮询）。 */
+  const onStorage = (e) => {
+    if (e.key === null || e.key === LS_TABS) schedule();
+  };
+  window.addEventListener('storage', onStorage);
+
   const count = () => document.querySelectorAll(`[${ATTR}]`).length;
 
   const destroy = () => {
     obs.disconnect();
     clearInterval(interval);
     clearTimeout(timer);
+    window.removeEventListener('storage', onStorage);
     if (window.__wbdsHideObserver === obs) window.__wbdsHideObserver = null;
   };
 
-  return { window: isSettings ? 'settings' : 'main', hidden: count(), destroy };
+  return {
+    window: isSettings ? 'settings' : 'main',
+    hidden: count(),
+    tabs: isSettings ? null : readTabs(),
+    apply,
+    destroy,
+  };
 })();

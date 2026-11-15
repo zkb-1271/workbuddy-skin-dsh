@@ -76,6 +76,44 @@
   font-weight: 500;
 }
 
+/* 导航图标：原生是纯黑 currentColor，和文字一样重，六个入口同时开着时很吵。
+   降一档到 tertiary，hover / 选中时才回到 primary —— 层级靠颜色拉，不靠加粗。 */
+:root[data-wbskin="dsh"] .conversation-list-tab-button > svg,
+:root[data-wbskin="dsh"] .conversation-list-tab-button > .wb-icon {
+  color: var(--wbds-text-tertiary);
+  transition: color 120ms ease;
+}
+:root[data-wbskin="dsh"] .conversation-list-tab-button:hover > svg,
+:root[data-wbskin="dsh"] .conversation-list-tab-button:hover > .wb-icon,
+:root[data-wbskin="dsh"] .conversation-list-tab-button--active > svg,
+:root[data-wbskin="dsh"] .conversation-list-tab-button--active > .wb-icon,
+:root[data-wbskin="dsh"] .conversation-list-tab-button[aria-current="page"] > svg,
+:root[data-wbskin="dsh"] .conversation-list-tab-button[aria-current="page"] > .wb-icon {
+  color: var(--wbds-text-primary);
+}
+
+/* 「资料库」那个图标是 <span class="wb-icon"> 套 <svg>，内层 svg 自带纯黑颜色，
+   不 inherit 就会在六个入口里独树一帜地黑。 */
+:root[data-wbskin="dsh"] .conversation-list-tab-button .wb-icon svg {
+  color: inherit;
+}
+
+/* 「Beta」徽章：原生那个灰底胶囊偏大偏飘，收成 10px 小标 + 发丝描边 */
+:root[data-wbskin="dsh"] .conversation-list-tab-beta {
+  margin-left: 6px;
+  padding: 0 4px;
+  border: var(--wbds-hairline) solid var(--wbds-edge-l3);
+  border-radius: 4px;
+  background-color: transparent;
+  color: var(--wbds-text-caption);
+  font-family: var(--wbds-font);
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 14px;
+  letter-spacing: 0.04em;
+  vertical-align: 1px;
+}
+
 /* 分组标题：灰底胶囊 → caption 文字（dsh 的分组是文字层级，不是色块）
    注意：这个元素是 position:sticky（滚动吸顶）。背景**必须不透明**，
    否则任务项会从吸顶标题背后透出来，看起来像文字重叠。
@@ -784,6 +822,14 @@ body.wbds-resizing {
 :root[data-wbskin="dsh"] .conversation-list {
   /* 底部让出积分条的位置，最后一行不被盖住 */
   padding-bottom: 52px;
+  /* 分组标题是 sticky 吸顶的；程序化滚动（选中会话、恢复上次位置）如果不留
+     这段余量，行会被塞到标题底下只露半截 —— 用户 11-15 截图里的
+     「任务 (19) 下面那条被切」就是这个。 */
+  scroll-padding-top: 36px;
+}
+:root[data-wbskin="dsh"] .conversation-item {
+  /* 同理：让 scrollIntoView / 锚点定位把行停在标题下方 */
+  scroll-margin-top: 36px;
 }
 :root[data-wbskin="dsh"] #wbds-credits-widget {
   /* 用户要求：占一条会话行的大小（40px 高、13px 字，对齐行标题节奏） */
