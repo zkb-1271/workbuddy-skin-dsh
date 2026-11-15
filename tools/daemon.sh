@@ -138,6 +138,16 @@ if [ $((NOW_H - LAST_HEALTH)) -ge 10 ]; then
       rm -f "$STATE/signature"
     fi
   fi
+
+  # 设置窗口（⌘,）里的「界面风格」开关：switch.js 没挂上时，
+  # 外观页就只有原生的 浅色/深色/…，切到原生后没有入口切回来。
+  # 窗口刚打开时 React 还没渲染，apply.sh 那一次注入经常落空，这里补。
+  SET_STATE=$(cd "$PROJ/tools" && CDP_APP=settings node cdp.mjs eval \
+    "typeof window.__wbdsSwitch" 2>/dev/null | tr -d '"' | tr -d ' \n' || true)
+  if [ "$SET_STATE" = "undefined" ]; then
+    ( cd "$PROJ/tools" && CDP_APP=settings node cdp.mjs run ../skin/switch.js >/dev/null 2>&1 ) \
+      && log "健康检查：设置窗口缺「界面风格」开关，已补注入"
+  fi
 fi
 
 if [ "$(cat "$STATE/signature" 2>/dev/null || echo '')" = "$SIGNATURE" ]; then
