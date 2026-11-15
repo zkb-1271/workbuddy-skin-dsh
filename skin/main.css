@@ -236,25 +236,26 @@
   overflow: visible;
 }
 
-/* 输入框里出现滚动条时：原生是系统默认宽条，压在圆形边框上很难看。
-   收成 6px 细条 + 透明轨道，且用 content-box 内缩，不贴边。 */
-:root[data-wbskin="dsh"] .cr-input-editor-host::-webkit-scrollbar {
+/* 全局滚动条：系统默认的宽条 + 方形轨道在任何圆角容器里都很突兀
+   （用户 2026-11-14 截图的输入框、11-15 截图的排队面板都是这个毛病）。
+   统一收成 10px 槽位 / 6px 圆角滑块 + 透明轨道；只在 dsh 模式下生效。 */
+:root[data-wbskin="dsh"] ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
 }
-:root[data-wbskin="dsh"] .cr-input-editor-host::-webkit-scrollbar-track {
+:root[data-wbskin="dsh"] ::-webkit-scrollbar-track {
   background: transparent;
 }
-:root[data-wbskin="dsh"] .cr-input-editor-host::-webkit-scrollbar-thumb {
+:root[data-wbskin="dsh"] ::-webkit-scrollbar-thumb {
   background-color: rgba(0, 0, 0, 0.18);
   border: 3px solid transparent;
   background-clip: content-box;
   border-radius: 999px;
 }
-:root[data-wbskin="dsh"] .cr-input-editor-host::-webkit-scrollbar-thumb:hover {
+:root[data-wbskin="dsh"] ::-webkit-scrollbar-thumb:hover {
   background-color: rgba(0, 0, 0, 0.28);
 }
-:root[data-wbskin="dsh"] .cr-input-editor-host::-webkit-scrollbar-corner {
+:root[data-wbskin="dsh"] ::-webkit-scrollbar-corner {
   background: transparent;
 }
 
