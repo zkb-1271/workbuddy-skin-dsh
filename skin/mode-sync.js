@@ -7,7 +7,7 @@
  *
  * 只在主窗口生效：设置窗口里有 switch.js 自己处理。
  */
-window.__wbdsModeSync?.destroy?.();
+try { window.__wbdsModeSync?.destroy?.(); } catch (e) { console.warn('[wbds] teardown failed', e); }
 
 window.__wbdsModeSync = (() => {
   const LS_MODE = 'wbds.skin.mode';

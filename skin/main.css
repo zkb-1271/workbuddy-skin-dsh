@@ -85,7 +85,9 @@
   /* sticky 吸顶：底色必须与侧栏同色系且能遮住滚过去的内容 */
   background-color: rgb(222, 227, 234);
   z-index: 3;
-  border-radius: 0;
+  /* 圆角跟会话行（8px）统一 —— 之前这里写的是 0，结果「空间 (N)」
+     是一条直角通栏色带，和周围的圆角行完全不是一个语言（用户 11-14 指出） */
+  border-radius: var(--wbds-r-sm);
   color: var(--wbds-text-caption);
   font-family: var(--wbds-font);
   font-size: 12px;
@@ -227,6 +229,33 @@
 :root[data-wbskin="dsh"] .cr-self-bubble {
   background-color: #eef3fd;
   border-radius: 16px;
+  /* 原生给了 max-height:310px + overflow:auto：长消息会被硬切一条线，
+     而且滚动条在圆角里很突兀（用户 2026-11-14 截图：最后一行切一半）。
+     这里取消高度上限，长消息整段显示，交给消息列表自己去滚。 */
+  max-height: none;
+  overflow: visible;
+}
+
+/* 输入框里出现滚动条时：原生是系统默认宽条，压在圆形边框上很难看。
+   收成 6px 细条 + 透明轨道，且用 content-box 内缩，不贴边。 */
+:root[data-wbskin="dsh"] .cr-input-editor-host::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+:root[data-wbskin="dsh"] .cr-input-editor-host::-webkit-scrollbar-track {
+  background: transparent;
+}
+:root[data-wbskin="dsh"] .cr-input-editor-host::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.18);
+  border: 3px solid transparent;
+  background-clip: content-box;
+  border-radius: 999px;
+}
+:root[data-wbskin="dsh"] .cr-input-editor-host::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 0, 0, 0.28);
+}
+:root[data-wbskin="dsh"] .cr-input-editor-host::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 :root[data-wbskin="dsh"] .cr-self-message__content {

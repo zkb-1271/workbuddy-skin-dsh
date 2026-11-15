@@ -12,7 +12,7 @@
    和 `showUnreadDot`（= unread && !running）。React 没给出更细的字段，
    所以按文案归类；文案变了只改 classify() 里的三个正则。
    ============================================================ */
-window.__wbdsStatus?.destroy?.();
+try { window.__wbdsStatus?.destroy?.(); } catch (e) { console.warn('[wbds] teardown failed', e); }
 
 window.__wbdsStatus = (() => {
   const ATTR = 'data-wbds-status';

@@ -10,7 +10,7 @@
  *  · 用户区可以整块隐藏：设置仍可用 ⌘, 打开（已实测），另可用 restore.sh 兜底
  */
 
-window.__wbdsHide?.destroy?.();   // 重注入先断旧实例，避免观察器绑在旧闭包上
+try { window.__wbdsHide?.destroy?.(); } catch (e) { console.warn('[wbds] teardown failed', e); }  // 重注入先断旧实例，避免观察器绑在旧闭包上
 
 window.__wbdsHide = (() => {
   const STYLE_ID = 'wbds-hide-style';

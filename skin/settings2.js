@@ -17,7 +17,7 @@
  *   window.__wbdsCreditsData 积分数据（daemon credits.mjs 写入）
  *   window.__wbHostMenuCommand('menu.openSettings') 原生设置（次要入口）
  */
-window.__wbdsSettings2?.destroy?.();
+try { window.__wbdsSettings2?.destroy?.(); } catch (e) { console.warn('[wbds] teardown failed', e); }
 
 window.__wbdsSettings2 = (() => {
   const ROOT_ID = 'wbds-settings2';

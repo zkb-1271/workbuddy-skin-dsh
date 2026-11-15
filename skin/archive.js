@@ -18,7 +18,7 @@
    所以「待确认」状态绝不能存在 DOM 上，必须放在外面的 pending Map 里，
    按钮重建时再补回来 —— 否则鼠标一动、行一重渲染，确认态就没了。
    ============================================================ */
-window.__wbdsArchive?.destroy?.();   // 重注入先拆旧实例，否则监听器与 pending 会堆叠
+try { window.__wbdsArchive?.destroy?.(); } catch (e) { console.warn('[wbds] teardown failed', e); }  // 重注入先拆旧实例，否则监听器与 pending 会堆叠
 
 window.__wbdsArchive = (() => {
   const KEY = 'genie-archived-session-ids';   // 老版本归档集合（只读，用于迁移）

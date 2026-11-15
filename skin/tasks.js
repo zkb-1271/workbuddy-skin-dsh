@@ -14,7 +14,7 @@
  *
  * 归档条目（data-wbds-archived）不参与计数 —— 那是 archive.js 藏掉的。
  */
-window.__wbdsTasks?.destroy?.();
+try { window.__wbdsTasks?.destroy?.(); } catch (e) { console.warn('[wbds] teardown failed', e); }
 
 window.__wbdsTasks = (() => {
   const LIMIT = 4;

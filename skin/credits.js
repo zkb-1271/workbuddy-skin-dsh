@@ -11,7 +11,7 @@
  *
  * 幂等：重复注入先 destroy（iframe 会重建，数据缓存不丢）。
  */
-window.__wbdsCredits?.destroy?.();
+try { window.__wbdsCredits?.destroy?.(); } catch (e) { console.warn('[wbds] teardown failed', e); }
 
 window.__wbdsCredits = (() => {
   const WIDGET_ID = 'wbds-credits-widget';
@@ -54,8 +54,12 @@ window.__wbdsCredits = (() => {
   const render = () => {
     const w = ensureWidget();
     if (!w) return;
-    const visible = localStorage.getItem('wbds.credits.visible') !== '0';
+    /* 切原生时（data-wbskin 摘掉）整条组件的样式都不再生效，
+       不主动藏就会在侧栏底部露出一行没有样式的裸文字。 */
+    const skinOn = document.documentElement.getAttribute('data-wbskin') === 'dsh';
+    const visible = skinOn && localStorage.getItem('wbds.credits.visible') !== '0';
     if (w.style.display !== (visible ? '' : 'none')) w.style.display = visible ? '' : 'none';
+    if (!skinOn) return;
     let d = window.__wbdsCreditsData;
     if (typeof d === 'string') { try { d = JSON.parse(d); } catch { d = null; } }
     if (!d) {

@@ -12,7 +12,7 @@
  *     且补挂时不能无脑重建（会触发 MutationObserver 死循环）。
  */
 
-window.__wbdsSwitch?.destroy?.();
+try { window.__wbdsSwitch?.destroy?.(); } catch (e) { console.warn('[wbds] teardown failed', e); }
 
 window.__wbdsSwitch = (() => {
   const LS_MODE = 'wbds.skin.mode';

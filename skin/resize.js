@@ -100,6 +100,14 @@ window.__wbdsResize = (() => {
     const h = ensureHandle();
     syncSidebarW();
 
+    /* 切原生时手柄必须收起：它自身的样式全在 data-wbskin 作用域里，
+       样式一撤就变成一条 9px 宽、几千像素高的隐形条，会挡住正文的点击。 */
+    if (document.documentElement.getAttribute('data-wbskin') !== 'dsh') {
+      if (h.style.display !== 'none') h.style.display = 'none';
+      requestAnimationFrame(follow);
+      return;
+    }
+
     /* 右侧面板打开时，正文会变得很窄，而且面板自带一条拖拽 sash（x≈正文右缘），
        我的手柄正好压在它上面会把 sash 挡住 —— 这时直接隐藏手柄。 */
     const panel = document.querySelector('.detail-panel');
