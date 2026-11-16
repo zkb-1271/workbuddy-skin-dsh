@@ -86,9 +86,19 @@ if [ "${CUR_ENV:-}" != "$PORT" ]; then
   # 每个开机周期只做一次，靠 state/last-boot-relaunch 记录，避免反复重启。
   PID_APP=$(pgrep -f "/Applications/WorkBuddy.app/Contents/MacOS/Electron" | head -1)
   if [ -n "${PID_APP:-}" ] && [ -x "$PROJ/tools/cdp-relaunch.sh" ]; then
-    UP=$(ps -p "$PID_APP" -o etimes= 2>/dev/null | tr -d ' ')
     LAST=$(cat "$STATE/last-relaunch" 2>/dev/null || echo 0)
     NOW0=$(date +%s)
+    # 进程存活时长自己记：这台机器上 `ps -p PID -o etimes=` 不被接受
+    # （会打印一整页关键字列表 + "integer expression expected"），
+    # 改成记住「第一次看到这个 PID 的时间」，两者差就是存活时长。
+    PID_SEEN=$(cat "$STATE/pid-seen" 2>/dev/null || echo "")
+    SEEN_PID=${PID_SEEN%% *}
+    SEEN_TS=${PID_SEEN##* }
+    if [ "$SEEN_PID" != "$PID_APP" ] || [ -z "${SEEN_TS:-}" ]; then
+      printf '%s %s' "$PID_APP" "$NOW0" >"$STATE/pid-seen"
+      SEEN_TS=$NOW0
+    fi
+    UP=$((NOW0 - SEEN_TS))
     BOOT=$(sysctl -n kern.boottime 2>/dev/null | grep -o 'sec = [0-9]*' | head -1 | grep -o '[0-9]*')
     UP_SYS=""
     [ -n "${BOOT:-}" ] && UP_SYS=$((NOW0 - BOOT))
