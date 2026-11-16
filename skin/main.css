@@ -800,26 +800,63 @@ body.wbds-resizing {
   display: none;
 }
 
-/* 首页输入面板的页脚（原生装着「选择分组」和「允许完全访问」）：
-   5.9 时代这两个控件在面板外面，我们把这条收成 0 高；5.11 起它们搬进了
-   这个 footer，再收就等于把工作区和权限一起藏了（用户 11-16 报的问题）。
-   现在恢复正常高度，只把配色/间距对齐 dsh。 */
-:root[data-wbskin="dsh"] .wb-home-route__input-box .cr-input-footer {
-  height: auto !important;
+/* 首页输入面板的页脚：5.11 把「选择分组」和「允许完全访问」塞进了这条
+   cr-input-footer，而它在卡片里另占一行 —— 直接显示就是在输入框下面挂一条
+   灰托盘，很难看（用户 11-16 明确否掉）。
+   做法：让它脱离文档流，浮到工具条那一行的左侧（避开 + 号），背景透明，
+   于是视觉上就是「+ / 选择分组 / 允许完全访问 …… 模型」同一行。 */
+:root[data-wbskin="dsh"] .cr-input-box__main {
+  position: relative;
+}
+/* 页脚容器本身不占位：两个 chip 各自定位。
+   参考首版设计稿（docs/screenshots/02-home.png）：
+   「选择工作空间」在卡片上方一行，「允许完全访问」在卡片内 + 号右边。 */
+/* 定位基准：两个 chip 都相对这张卡片定位 */
+:root[data-wbskin="dsh"] .wb-home-route .cr-input-box__main {
+  position: relative;
+}
+/* 页脚容器退回普通流（高度 0），这样里面的两个 chip 的定位基准变成卡片本身：
+   「选择分组（工作区）」浮在卡片上方一行，「允许完全访问」在卡片内 + 号右边 ——
+   和第 02-home.png 设计稿一致，而不是挂在卡片底下的一条灰托盘。 */
+:root[data-wbskin="dsh"] .wb-home-route .cr-input-box__main > .cr-input-footer {
+  position: static;
+  height: 0 !important;
   min-height: 0 !important;
-  padding: 0 4px 2px !important;
+  padding: 0 !important;
   margin: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
   overflow: visible;
-  gap: 6px;
 }
-:root[data-wbskin="dsh"] .wb-home-route__input-box .cr-input-footer .cr-input-footer-item {
-  color: var(--wbds-text-secondary);
+/* 工作区 / 分组：卡片上方，和设计稿「选择工作空间」同一位置 */
+:root[data-wbskin="dsh"] .wb-home-route .cr-input-box__main > .cr-input-footer .cr-workspace-picker {
+  position: absolute;
+  z-index: 10;
+  left: 4px;
+  top: -34px;
+  height: 28px;
+  padding: 0 6px;
+  color: var(--wbds-text-caption);
+  font-size: 13px;
+  background: transparent;
 }
-:root[data-wbskin="dsh"] .wb-home-route__input-box .cr-input-footer .cr-input-footer-item:hover {
-  background-color: rgba(0, 0, 0, 0.05);
+/* 权限：卡片内左下，+ 号右边 */
+:root[data-wbskin="dsh"] .wb-home-route .cr-input-box__main > .cr-input-footer .cr-permission-setting {
+  position: absolute;
+  z-index: 10;
+  left: 44px;
+  bottom: 12px;
+  height: 28px;
+  padding: 0 6px;
+  color: var(--wbds-text-caption);
+  font-size: 13px;
+  background: transparent;
+}
+:root[data-wbskin="dsh"] .wb-home-route .cr-input-box__main > .cr-input-footer .cr-input-footer-item:hover {
   color: var(--wbds-text-primary);
+  background-color: rgba(0, 0, 0, 0.05);
 }
-
 
 /* ---------- 13. 侧栏左下角积分小组件 ----------
    数据由 daemon 侧 credits.mjs 通过主窗口的 window.wb.http（应用自己的鉴权）
