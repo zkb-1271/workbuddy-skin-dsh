@@ -829,11 +829,11 @@ body.wbds-resizing {
   box-shadow: none !important;
   overflow: visible;
 }
-/* 工作区 / 分组：卡片上方，和设计稿「选择工作空间」同一位置 */
+/* 工作区 / 分组：卡片上方，左缘与卡片内的 + 对齐（卡片内边距 12px） */
 :root[data-wbskin="dsh"] .wb-home-route .cr-input-box__main > .cr-input-footer .cr-workspace-picker {
   position: absolute;
   z-index: 10;
-  left: 4px;
+  left: 16px;                /* 让文件夹图标与卡片内 + 号的字形左缘对齐（+ 按钮有 10px 内距） */
   top: -34px;
   height: 28px;
   padding: 0 6px;
@@ -841,19 +841,32 @@ body.wbds-resizing {
   font-size: 13px;
   background: transparent;
 }
-/* 权限：卡片内左下，+ 号右边 */
+/* 权限：卡片内 + 号右侧，垂直中心与 + 对齐（+ 的中心距卡片底 33px） */
 :root[data-wbskin="dsh"] .wb-home-route .cr-input-box__main > .cr-input-footer .cr-permission-setting {
   position: absolute;
   z-index: 10;
-  left: 44px;
-  bottom: 12px;
+  left: 52px;
+  bottom: 19px;
   height: 28px;
   padding: 0 6px;
+  border-radius: 8px;
   color: var(--wbds-text-caption);
   font-size: 13px;
   background: transparent;
 }
-:root[data-wbskin="dsh"] .wb-home-route .cr-input-box__main > .cr-input-footer .cr-input-footer-item:hover {
+/* 「允许完全访问」是危险档：原生本来就给红色，之前被我们统一成灰字，
+   等于把风险提示抹掉了。只给红色文字 + 图标，**不要色块底**
+   （用户 11-16：不是一整片，只保留字和图标）。 */
+:root[data-wbskin="dsh"] .wb-home-route .cr-input-box__main > .cr-input-footer .cr-permission-setting--danger {
+  color: #c0392b;
+  background-color: transparent !important;
+  font-weight: 500;
+}
+:root[data-wbskin="dsh"] .wb-home-route .cr-input-box__main > .cr-input-footer .cr-permission-setting--danger:hover {
+  color: #9e2d21;
+  background-color: transparent !important;
+}
+:root[data-wbskin="dsh"] .wb-home-route .cr-input-box__main > .cr-input-footer .cr-input-footer-item:not(.cr-permission-setting--danger):hover {
   color: var(--wbds-text-primary);
   background-color: rgba(0, 0, 0, 0.05);
 }
