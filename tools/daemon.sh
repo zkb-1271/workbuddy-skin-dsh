@@ -23,6 +23,16 @@ BUNDLE_ID="com.tencent.workbuddy.mac"
 mkdir -p "$STATE" "$(dirname "$LOG")"
 log() { echo "$(date '+%F %T') $*" >>"$LOG"; }
 
+# 带端口重启 WorkBuddy 的唯一入口（前台跑到底，见函数内说明）。
+submit_relaunch() {
+  # daemon 是被 launchd 每 2 秒拉起的短命进程：`nohup ... &` 起的子进程会跟着
+  # 父进程一起被回收（实测 relaunch.log 根本没生成、应用也没重启）。
+  # launchctl submit 在沙箱里又被拒。所以干脆前台跑 —— relaunch 脚本自带超时
+  # （内联环境变量 60s + setenv/open 40s），跑完 daemon 再退；这期间 launchd
+  # 不会重复拉起同一个 job，正好。
+  /bin/bash "$PROJ/tools/cdp-relaunch.sh" >/dev/null 2>&1
+}
+
 # ---------- 1. 保活全局环境变量 ----------
 # 这样用户从 Dock 正常双击启动也能读到端口配置，全程无感。
 # 没有权限就静默跳过 —— 后果只是"这次启动没带端口"，不会破坏任何东西。
@@ -67,18 +77,63 @@ if [ "${CUR_ENV:-}" != "$PORT" ]; then
     launchctl setenv WORKBUDDY_REMOTE_DEBUGGING_PORT "$PORT" 2>/dev/null \
       && log "已补设 WORKBUDDY_REMOTE_DEBUGGING_PORT=$PORT"
   fi
-  # 刚启动却没带端口（比如从 Dock 双击）→ 用内联环境变量重启一次，
-  # 只在启动后 40 秒内动手，绝不碰已经用了很久的会话。
+  # 刚启动却没带端口（比如从 Dock 双击 / 开机自启）→ 用内联环境变量重启一次。
+  # 两道窗口：
+  #   ① 进程刚起来 60 秒内 —— 基本等于"刚启动"，重启不会打断任何工作；
+  #   ② 开机 15 分钟内 —— 覆盖"重启电脑 → 系统还没把 launchctl 环境变量恢复、
+  #      WorkBuddy 就自启了"这种情况（用户 11-16 报的就是这个：开机后皮肤不生效）。
+  #      这时用户通常还没开始干活，重启代价最小。
+  # 每个开机周期只做一次，靠 state/last-boot-relaunch 记录，避免反复重启。
   PID_APP=$(pgrep -f "/Applications/WorkBuddy.app/Contents/MacOS/Electron" | head -1)
   if [ -n "${PID_APP:-}" ] && [ -x "$PROJ/tools/cdp-relaunch.sh" ]; then
     UP=$(ps -p "$PID_APP" -o etimes= 2>/dev/null | tr -d ' ')
     LAST=$(cat "$STATE/last-relaunch" 2>/dev/null || echo 0)
     NOW0=$(date +%s)
-    if [ -n "${UP:-}" ] && [ "$UP" -lt 40 ] && [ $((NOW0 - LAST)) -gt 120 ]; then
-      log "检测到启动未带端口（已运行 ${UP}s），自动带端口重启一次"
+    BOOT=$(sysctl -n kern.boottime 2>/dev/null | grep -o 'sec = [0-9]*' | head -1 | grep -o '[0-9]*')
+    UP_SYS=""
+    [ -n "${BOOT:-}" ] && UP_SYS=$((NOW0 - BOOT))
+    BOOT_DONE=$(cat "$STATE/last-boot-relaunch" 2>/dev/null || echo 0)
+
+    FRESH_APP=0
+    [ -n "${UP:-}" ] && [ "$UP" -lt 60 ] && FRESH_APP=1
+    FRESH_BOOT=0
+    if [ -n "${UP_SYS:-}" ] && [ "$UP_SYS" -lt 900 ] && [ "$BOOT_DONE" != "$BOOT" ]; then
+      FRESH_BOOT=1
+    fi
+
+    if { [ "$FRESH_APP" = 1 ] || [ "$FRESH_BOOT" = 1 ]; } && [ $((NOW0 - LAST)) -gt 120 ]; then
+      if [ "$FRESH_BOOT" = 1 ]; then
+        log "开机 ${UP_SYS}s 内检测到 WorkBuddy 无调试端口，自动带端口重启一次（本开机周期仅一次）"
+        printf '%s' "$BOOT" >"$STATE/last-boot-relaunch"
+      else
+        log "检测到启动未带端口（已运行 ${UP}s），自动带端口重启一次"
+      fi
       date +%s >"$STATE/last-relaunch"
-      nohup /bin/bash "$PROJ/tools/cdp-relaunch.sh" >/dev/null 2>&1 &
+      osascript -e 'display notification "正在重启 WorkBuddy 以启用 dsh 皮肤，历史记录不会丢" with title "dsh 皮肤"' >/dev/null 2>&1
+      submit_relaunch
       exit 0
+    fi
+
+    # 预约式重启：state/relaunch-at 存一个 epoch 时间点，到点自己带端口重启。
+    # 用在「皮肤没生效、但不想当场打断用户」的场合（agent 排障后给用户留出读消息的时间）。
+    PENDING=$(cat "$STATE/relaunch-at" 2>/dev/null || echo 0)
+    if [ -n "${PENDING:-}" ] && [ "$PENDING" != "0" ] && [ "$NOW0" -ge "$PENDING" ]; then
+      rm -f "$STATE/relaunch-at"
+      log "按预约时间带端口重启 WorkBuddy"
+      date +%s >"$STATE/last-relaunch"
+      osascript -e 'display notification "正在重启 WorkBuddy 以启用 dsh 皮肤，历史记录不会丢" with title "dsh 皮肤"' >/dev/null 2>&1
+      submit_relaunch
+      exit 0
+    fi
+
+    # 已经错过自动窗口（开机很久了 / 这个周期已经重启过）→ 只提醒，不擅自杀进程
+    if [ "$BOOT_DONE" != "${BOOT:-}" ] && [ -n "${UP:-}" ] && [ "$UP" -gt 60 ]; then
+      NUDGE="$STATE/nudge-$BOOT"
+      if [ ! -f "$NUDGE" ]; then
+        : >"$NUDGE"
+        log "皮肤需要重启才能生效：本次启动没带调试端口，请 Cmd+Q 后重开一次 WorkBuddy"
+        osascript -e 'display notification "本次启动没带调试端口，Cmd+Q 退出后重新打开 WorkBuddy 即可" with title "dsh 皮肤未生效"' >/dev/null 2>&1
+      fi
     fi
   fi
 
