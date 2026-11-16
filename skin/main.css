@@ -800,15 +800,24 @@ body.wbds-resizing {
   display: none;
 }
 
-/* 首页输入面板下面的灰条（cr-input-footer，原生装着权限按钮）收掉：
-   权限按钮已被钉到面板内 + 的右边（fixed 定位，不受这里折叠影响）。
-   只折叠首页这条，会话页没有这个 footer 结构。 */
+/* 首页输入面板的页脚（原生装着「选择分组」和「允许完全访问」）：
+   5.9 时代这两个控件在面板外面，我们把这条收成 0 高；5.11 起它们搬进了
+   这个 footer，再收就等于把工作区和权限一起藏了（用户 11-16 报的问题）。
+   现在恢复正常高度，只把配色/间距对齐 dsh。 */
 :root[data-wbskin="dsh"] .wb-home-route__input-box .cr-input-footer {
-  height: 0 !important;
+  height: auto !important;
   min-height: 0 !important;
-  padding: 0 !important;
+  padding: 0 4px 2px !important;
   margin: 0 !important;
-  overflow: hidden;
+  overflow: visible;
+  gap: 6px;
+}
+:root[data-wbskin="dsh"] .wb-home-route__input-box .cr-input-footer .cr-input-footer-item {
+  color: var(--wbds-text-secondary);
+}
+:root[data-wbskin="dsh"] .wb-home-route__input-box .cr-input-footer .cr-input-footer-item:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: var(--wbds-text-primary);
 }
 
 
