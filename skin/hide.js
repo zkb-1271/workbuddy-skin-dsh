@@ -35,12 +35,15 @@ window.__wbdsHide = (() => {
      默认值 = 皮肤一直以来的取舍：只留「新建任务 / 定时任务」，
      其余四个（助理、专家·技能·连接器、资料库、更多）默认收起。 */
   const LS_TABS = 'wbds.sidebar.tabs';
+  /* WorkBuddy 5.11 把第六项「更多」换成了「发现」，两套都留着：
+     旧版匹配不到 发现、新版匹配不到 更多，互不影响。 */
   const TAB_DEFS = [
     { key: 'new', label: '新建任务', match: '新建任务', def: 1 },
     { key: 'assistant', label: '助理', match: '助理', def: 0 },
     { key: 'experts', label: '专家·技能·连接器', match: '专家', def: 0 },
     { key: 'cron', label: '定时任务', match: '定时任务', def: 1 },
     { key: 'library', label: '资料库', match: '资料库', def: 0 },
+    { key: 'discover', label: '发现', match: '发现', def: 1 },
     { key: 'more', label: '更多', match: '更多', def: 0 },
   ];
   const defaultTabs = () => Object.fromEntries(TAB_DEFS.map((d) => [d.key, d.def]));

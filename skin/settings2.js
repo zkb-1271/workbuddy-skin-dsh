@@ -28,15 +28,25 @@ window.__wbdsSettings2 = (() => {
   /* ---------- 主窗口侧栏的六个入口（与 hide.js 的 TAB_DEFS 一一对应） ----------
      默认值 = 皮肤一直以来的取舍：只留 新建任务 / 定时任务。 */
   const LS_TABS = 'wbds.sidebar.tabs';
+  /* 与 hide.js 的 TAB_DEFS 对齐（match 用于在侧栏里按文本认领）。
+     5.11 起第六项是「发现」；「更多」保留给旧版。 */
   const TAB_DEFS = [
-    { key: 'new', label: '新建任务' },
-    { key: 'assistant', label: '助理' },
-    { key: 'experts', label: '专家·技能·连接器' },
-    { key: 'cron', label: '定时任务' },
-    { key: 'library', label: '资料库' },
-    { key: 'more', label: '更多' },
+    { key: 'new', label: '新建任务', match: '新建任务' },
+    { key: 'assistant', label: '助理', match: '助理' },
+    { key: 'experts', label: '专家·技能·连接器', match: '专家' },
+    { key: 'cron', label: '定时任务', match: '定时任务' },
+    { key: 'library', label: '资料库', match: '资料库' },
+    { key: 'discover', label: '发现', match: '发现' },
+    { key: 'more', label: '更多', match: '更多' },
   ];
-  const TAB_DEFAULT = { new: 1, assistant: 0, experts: 0, cron: 1, library: 0, more: 0 };
+  const TAB_DEFAULT = { new: 1, assistant: 0, experts: 0, cron: 1, library: 0, discover: 1, more: 0 };
+  /* 当前 WorkBuddy 版本里真实存在的侧栏入口（按按钮文本前缀认领） */
+  const presentTabs = () => {
+    const texts = [...document.querySelectorAll('.conversation-list-tab-button')]
+      .map((b) => (b.innerText || '').replace(/\s+/g, ' ').trim());
+    if (!texts.length) return TAB_DEFS;
+    return TAB_DEFS.filter((t) => texts.some((x) => x.startsWith(t.match)));
+  };
   const readTabs = () => {
     let raw = null;
     try { raw = JSON.parse(localStorage.getItem(LS_TABS) || 'null'); } catch { raw = null; }
@@ -351,7 +361,7 @@ window.__wbdsSettings2 = (() => {
           <span class="wbs2-row-label">侧栏栏目<span class="wbs2-row-sub">主窗口左侧的六个入口，关掉就只剩任务列表</span></span>
           <button class="wbs2-btn wbs2-btn--sm" data-act="tabs-reset">恢复默认</button>
         </div>
-        ${TAB_DEFS.map((t) => {
+        ${presentTabs().map((t) => {
           const on = tabs[t.key] ? 1 : 0;
           return `<div class="wbs2-row wbs2-row--compact">
             <span class="wbs2-row-label">${t.label}</span>
