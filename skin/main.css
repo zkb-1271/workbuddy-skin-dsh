@@ -894,11 +894,11 @@ body.wbds-resizing {
   height: 40px;
   display: flex;
   align-items: center;
-  /* 紧凑左对齐：用固定间距而不是 space-between ——
-     数字短的时候（比如「—」「0」）space-between 会把五项摊满整条，
-     看起来像散了架（2026-11-14 截图就是这个毛病）。 */
-  justify-content: flex-start;
-  gap: 6px;
+  /* 三组均匀铺满（头像 / 总积分 / 今日）——2026-11-25 用户要求「均匀一点」。
+     之前是 flex-start + gap，标签和数字被拆成五项挤在左边，右侧空一大块；
+     现在 label+num 各自成组，组间用 space-between 平均分配。 */
+  justify-content: space-between;
+  gap: 8px;
   padding: 0 12px;
   border-radius: 8px;
   /* 侧栏是半透明的，行会从这条下面滚过去；不给底色就会看到文字互相叠 */
@@ -912,6 +912,13 @@ body.wbds-resizing {
   white-space: nowrap;
   pointer-events: none;
   user-select: none;
+}
+/* 一组 = 标签 + 数值，内部保持贴近（标签与数字之间 6px） */
+:root[data-wbskin="dsh"] #wbds-credits-widget .wbds-c-group {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
 }
 :root[data-wbskin="dsh"] #wbds-credits-widget .wbds-c-num {
   color: var(--wbds-text-primary);

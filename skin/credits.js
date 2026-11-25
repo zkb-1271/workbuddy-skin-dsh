@@ -38,10 +38,12 @@ window.__wbdsCredits = (() => {
     w.innerHTML =
       '<button class="wbds-c-avatar" type="button" aria-label="打开设置" title="设置">' +
       '<img alt="" src="' + (window.__WBDS_AVATAR || '') + '"></button>' +
-      '<span class="wbds-c-label">总积分</span>' +
-      '<span class="wbds-c-num" data-c="total">—</span>' +
-      '<span class="wbds-c-label">今日</span>' +
-      '<span class="wbds-c-num" data-c="today">—</span>';
+      /* 两个「标签+数值」各自成组：外层用 space-between 让三组均匀铺满整条，
+         不然标签和数字会被拆成五个独立项、间距全靠 gap，右边空一大块。 */
+      '<span class="wbds-c-group"><span class="wbds-c-label">总积分</span>' +
+      '<span class="wbds-c-num" data-c="total">—</span></span>' +
+      '<span class="wbds-c-group"><span class="wbds-c-label">今日</span>' +
+      '<span class="wbds-c-num" data-c="today">—</span></span>';
     /* 点头像 → 自建设置页（settings2.js）。没有就什么都不做。 */
     w.querySelector('.wbds-c-avatar').addEventListener('click', (e) => {
       e.stopPropagation();
