@@ -84,6 +84,15 @@ window.__wbdsStatus = (() => {
      这里补一个灰色小齿轮（旋转动画），把节奏补齐。
      一旦原生又渲染出时间（行结束），就把我们补的这个撤掉。 */
   const LABEL_CLS = 'wbds-row-state';
+
+  /* 「这一行是不是当前打开的会话」——补齿轮只给它。
+     原因（2026-11-28 用户报「持续显示正在工作」）：应用会把 trailingStatus
+     节点留在行上不清（DB 里那轮早就是 completed），我们补的灰齿轮就跟着
+     永远转。列表里其他行没有任何可靠信号区分"真在跑"和"残留节点"，
+     而当前会话本来就能看到实时输出，所以只在它身上补。 */
+  const isActiveRow = (row) =>
+    row.matches('[aria-current="true"], .conversation-item--active') ||
+    !!row.querySelector('[class*="_selected_"], [class*="card--active"]');
   /* 齿轮 = 原生运行图标的同一枚（16×16 辐条齿轮，fill currentColor），
      这里只把颜色换成灰色，转动由 main.css 的 wbds-gear-spin 驱动 */
   const GEAR_SVG = '<svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path transform="matrix(1 0 0 1 2.07097 1.5)" fill-rule="evenodd" d="M6.529 0L6.529 4L5.329 4L5.329 0L6.529 0ZM8.394 5.7697L11.8581 3.7697L11.258 2.7305L7.7939 4.7305L8.394 5.7697ZM3.4641 5.7698L0 3.7698L0.6 2.7305L4.0641 4.7305L3.4641 5.7698ZM7.7939 8.2697L11.258 10.2697L11.8581 9.2305L8.394 7.2305L7.7939 8.2697ZM4.0641 8.2697L0.6 10.2697L0 9.2305L3.4641 7.2305L4.0641 8.2697ZM6.529 9L6.529 13L5.329 13L5.329 9L6.529 9Z"></path></svg>';
@@ -97,13 +106,13 @@ window.__wbdsStatus = (() => {
       if (mine) mine.remove();
       return;
     }
-    const raw = String(props && props.statusText ? props.statusText : '');
     /* 判定"在跑"不能只看 statusText：一轮对话进行中时，statusText 还是
        上一轮的"已完成"，真正可靠的信号是那个旋转图标还在。
-       旋转图标在 = 这一轮还没结束 → 补灰色齿轮。 */
+       但图标本身也可能是应用没清的残留（见 isActiveRow 的注释），
+       所以再叠一条"必须是当前会话"。 */
     const spinning = !!row.querySelector('[class*="trailingStatus"] svg.wb-icon--spin');
-    const runningText = /执行中|运行|进行|规划/.test(raw);
-    if (!spinning && !runningText) {
+    /* 非当前会话一律不补：那条 trailingStatus 可能只是应用没清的残留 */
+    if (!spinning || !isActiveRow(row)) {
       if (mine) mine.remove();
       return;
     }
